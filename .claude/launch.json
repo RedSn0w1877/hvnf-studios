@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "kroma-labs",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "kroma-labs"],
+      "port": 3000
+    },
+    {
+      "name": "apex-dynamics",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "apex-dynamics", "--", "-p", "3001"],
+      "port": 3001
+    },
+    {
+      "name": "aetheria-botanicals",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "aetheria-botanicals", "--", "-p", "3002"],
+      "port": 3002
+    }
+  ]
+}
