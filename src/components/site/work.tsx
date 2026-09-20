@@ -42,7 +42,7 @@ const BUILDS: readonly Build[] = [
     title: "Kroma Labs",
     sector: "Machined hardware",
     blurb:
-      "A billet aluminium keyboard shop. The board is modelled in the browser, comes apart layer by layer as you scroll, and every switch sounds itself through the Web Audio API.",
+      "A shop for machined aluminium keyboards. The board is built in 3D in the browser, comes apart layer by layer as you scroll, and every switch plays its own sound.",
     built: ["React Three Fiber", "ScrollTrigger", "Web Audio"],
     href: "https://redsn0w1877.github.io/kroma-labs/",
     poster: "from-zinc-900 via-neutral-900 to-stone-950",
@@ -54,8 +54,8 @@ const BUILDS: readonly Build[] = [
     title: "Apex Dynamics",
     sector: "Performance footwear",
     blurb:
-      "A carbon-plated trail racer. The shoe is generated in code and pulls apart into its five layers on scroll, beside a drag comparator and stride telemetry you can drag through.",
-    built: ["Procedural geometry", "GPU particles", "SVG telemetry"],
+      "A shop for a carbon-plated trail running shoe. The shoe is drawn in code and splits into its five layers as you scroll, next to charts you can drag through yourself.",
+    built: ["Shoe drawn in code", "GPU particles", "Live charts"],
     href: "https://redsn0w1877.github.io/apex-dynamics/",
     poster: "from-slate-950 via-zinc-900 to-black",
     accent: "#CCFF00",
@@ -66,8 +66,8 @@ const BUILDS: readonly Build[] = [
     title: "Aetheria Botanicals",
     sector: "Slow-extraction perfumery",
     blurb:
-      "An editorial perfume atelier. A fluted crystal flacon refracts in real time, the tincture takes the colour of the scent you compose, and the extraction ritual walks sideways as you scroll down.",
-    built: ["Custom GLSL", "Physical glass", "Pinned horizontal scroll"],
+      "A shop for slow-made botanical perfume. The glass bottle catches the light as it turns, the liquid takes the colour of the scent you mix, and the story moves sideways as you scroll.",
+    built: ["Custom shaders", "Real glass", "Sideways scroll"],
     href: "https://redsn0w1877.github.io/aetheria-botanicals/",
     poster: "from-[#1d2a20] via-[#14201a] to-[#0b1210]",
     accent: "#A88243",
@@ -300,8 +300,8 @@ export function Work() {
           <Reveal className="lg:col-span-5 lg:justify-self-end">
             <p className="max-w-sm text-[15px] leading-relaxed text-ash">
               {lite
-                ? "Each build below is deployed and running. Open one and poke at it — the 3D, the scroll work and the interactions are all real."
-                : "Every frame below is the real deployed site, embedded and running as you scroll. Open one and poke at it."}
+                ? "Each build below is live on the web. Open one and try it — the 3D and the scrolling are all real."
+                : "Each frame below is the real site, running right here as you scroll. Open one and try it."}
             </p>
           </Reveal>
         </div>

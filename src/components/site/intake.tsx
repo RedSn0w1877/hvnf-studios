@@ -309,8 +309,8 @@ export function Intake({ open, onClose }: { open: boolean; onClose: () => void }
                   {step === 3 ? (
                     <div>
                       <p className="text-[15px] leading-relaxed text-ash">
-                        Here is your brief. Open an email draft with everything filled in, then send it from your email
-                        app. Your details stay on this page until you choose to send them.
+                        Here is your brief. Open an email draft with it all filled in, then send it from your email
+                        app. Nothing leaves this page until you send it.
                       </p>
                       <dl className="mt-6 divide-y divide-rule border-y border-rule">
                         {[

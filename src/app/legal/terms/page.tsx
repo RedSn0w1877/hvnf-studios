@@ -14,40 +14,52 @@ export default function TermsPage() {
       updated="September 2026"
       clauses={[
         {
-          heading: "Using this site",
+          heading: "Use of this site and intellectual property",
           body: (
             <p>
-              You are welcome to browse this site and the work shown on it. The design, code, words and marks here
-              belong to HVNF Studios; please do not copy them, reuse them as a template, or pass them off as your own
-              work without asking us first.
+              Access to this site is offered subject to these terms. All design, source code, text, imagery and marks
+              appearing on it remain the property of HVNF Studios. No licence is granted to reproduce, redistribute,
+              adapt or republish any part of it, whether as a template or otherwise, without our prior written consent.
             </p>
           ),
         },
         {
-          heading: "The showcase builds",
+          heading: "Status of the showcase builds",
           body: (
             <p>
-              Kroma Labs, Apex Dynamics and Aetheria Botanicals are fictional brands we invented to demonstrate what we
-              can build. They are not real businesses, nothing on them is for sale, and any figures they quote are
-              illustrative.
+              Kroma Labs, Apex Dynamics and Aetheria Botanicals are fictional brands created solely to demonstrate our
+              capabilities. They do not denote trading entities, no goods or services presented on them are available
+              for purchase, and all figures, specifications and availability stated within them are illustrative only.
             </p>
           ),
         },
         {
-          heading: "Enquiries are not contracts",
+          heading: "Enquiries do not constitute a contract",
           body: (
             <p>
-              Sending us a brief through this site starts a conversation, nothing more. No work is commissioned, no
-              price is agreed and no booking is held until we have both signed off a written quote.
+              Submission of a brief through this site constitutes an enquiry only. It does not commission work, fix a
+              price, reserve capacity, or create any contractual obligation on either party. No engagement arises until
+              both parties have agreed a written quotation.
             </p>
           ),
         },
         {
-          heading: "What we agree per project",
+          heading: "Precedence of project terms",
           body: (
             <p>
-              Scope, price, schedule and payment terms live in the quote for your project rather than on this page. That
-              document is what governs the work, and it takes precedence over anything written here.
+              Scope, fees, schedule and payment terms are set out in the written quotation issued for each project. That
+              quotation governs the engagement and prevails over anything stated on this page in the event of any
+              conflict or inconsistency.
+            </p>
+          ),
+        },
+        {
+          heading: "Availability of this site",
+          body: (
+            <p>
+              This site is provided on an “as available” basis. While we take reasonable care to keep it accurate and
+              accessible, we do not warrant uninterrupted availability, and we may amend or withdraw any part of it,
+              including these terms, without prior notice.
             </p>
           ),
         },
@@ -55,7 +67,7 @@ export default function TermsPage() {
           heading: "Contact",
           body: (
             <p>
-              Questions about these terms go to{" "}
+              Enquiries regarding these terms should be directed to{" "}
               <a className="text-ember hover:underline" href={`mailto:${STUDIO_EMAIL}`}>{STUDIO_EMAIL}</a>.
             </p>
           ),

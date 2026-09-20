@@ -10,25 +10,25 @@ const STEPS = [
     n: "01",
     title: "We build first, then talk",
     body:
-      "Before any money changes hands you get a working preview of your own site, built from what is already public about your business. Open it on your phone, show it to your partner, click the call button.",
+      "You get a working preview of your own site before you pay anything. We build it from what is already public about your business. Open it on your phone and press the call button.",
   },
   {
     n: "02",
     title: "You mark it up",
     body:
-      "Tell us what is wrong: the photos, the wording, the services you no longer offer. We work through your list together until the preview reads like your business rather than a template.",
+      "Tell us what is wrong — the photos, the wording, the services you no longer offer. We work through your list together until the site sounds like your business.",
   },
   {
     n: "03",
     title: "We finish the build",
     body:
-      "Half up front, and we finish the pages: real copy, real photos, proper titles for search, forms and booking wired to reach you, and every layout checked on a phone first.",
+      "Half up front, then we finish the pages: your words, your photos, titles that help you show up in search, and forms and booking that reach you. Every page is checked on a phone.",
   },
   {
     n: "04",
     title: "It goes live in your name",
     body:
-      "Balance settles before the domain moves. The domain, the hosting and the code end up in your accounts, so the site stays yours whether or not you keep working with us.",
+      "You pay the rest before the domain moves. The domain, the hosting and the code all end up in your accounts, so the site is yours even if you stop working with us.",
   },
 ] as const;
 
@@ -76,8 +76,7 @@ export function Method() {
           </h2>
           <Reveal className="lg:col-span-5 lg:justify-self-end">
             <p className="max-w-sm text-[15px] leading-relaxed text-ash">
-              Most studios sell you a plan and a timeline. We would rather hand you the thing itself and let it argue
-              its own case.
+              Most studios sell you a plan and a timeline. We would rather hand you the site and let you judge it.
             </p>
           </Reveal>
         </div>

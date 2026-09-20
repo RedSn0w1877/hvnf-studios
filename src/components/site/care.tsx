@@ -8,25 +8,25 @@ const PILLARS = [
     icon: Smartphone,
     title: "Built for a phone on a bad signal",
     body:
-      "Most of your visitors arrive on a phone, often on mobile data. Pages are built light and images are sized for the screen that asks for them, so the first thing they see arrives quickly.",
+      "Most of your visitors arrive on a phone, often on mobile data. Pages are kept light and images are sized to the screen asking for them, so the page shows up quickly.",
   },
   {
     icon: Gauge,
-    title: "Nothing we did not put there",
+    title: "Only what you actually need",
     body:
-      "No page builder, no plugin stack, no theme dragging along code for features you will never use. Every part of the page is written for your business and can be read by a human.",
+      "No page builder, no pile of plugins, no theme carrying code for features you will never use. Every part of the page is written for your business.",
   },
   {
     icon: Search,
     title: "Findable by the people nearby",
     body:
-      "Proper titles, real descriptions, clean headings, and the local details search engines look for: address, hours, service area, and the pages that answer what people actually type.",
+      "Clear titles, real descriptions and tidy headings, plus the details search engines look for: your address, hours, service area, and pages that answer what people search for.",
   },
   {
     icon: LifeBuoy,
     title: "Kept running after launch",
     body:
-      "A care plan covers hosting, the certificate, updates and a monthly note on how the site is doing. Text us a change and it happens — you never open a dashboard unless you want to.",
+      "A care plan covers hosting, security, updates and a monthly note on how the site is doing. Text us a change and we make it. You never have to open a dashboard.",
   },
 ] as const;
 
@@ -46,7 +46,7 @@ export function Care() {
           </h2>
           <Reveal className="lg:col-span-5 lg:justify-self-end">
             <p className="max-w-sm text-[15px] leading-relaxed text-ash">
-              The same care that went into the three showcase builds, pointed at the thing that pays your bills: the
+              The same care that went into the three builds above, aimed at the thing that pays your bills: the
               phone ringing.
             </p>
           </Reveal>

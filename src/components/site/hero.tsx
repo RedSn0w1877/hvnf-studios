@@ -60,8 +60,8 @@ export function Hero({ onStart }: { onStart: () => void }) {
           transition={{ duration: 0.9, ease: SETTLE, delay: 0.5 }}
           className="mt-10 max-w-xl text-[17px] leading-relaxed text-ash"
         >
-          We replace slow, dated sites for trades, clinics, salons and shops with hand-built ones: mobile first,
-          quick on a phone signal, and wired so a visitor can call or book without hunting for the button.
+          We build fast websites for local businesses — trades, clinics, salons and shops. Yours will work on a
+          phone, load quickly, and make it easy for people to call or book.
         </motion.p>
 
         <motion.div
