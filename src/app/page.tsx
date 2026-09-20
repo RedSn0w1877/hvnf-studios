@@ -1,61 +1,61 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Lenis from "lenis";
-import { Navbar } from "@/components/studio/navbar";
-import { Hero } from "@/components/studio/hero";
-import { FlagshipGrid } from "@/components/studio/flagship-grid";
-import { Capabilities } from "@/components/studio/capabilities";
-import { IntakeDrawer } from "@/components/studio/intake-drawer";
-import Footer from "@/components/studio/footer";
+import { Stage } from "@/components/site/stage";
+import { Nav } from "@/components/site/nav";
+import { Hero } from "@/components/site/hero";
+import { Work } from "@/components/site/work";
+import { Method } from "@/components/site/method";
+import { Care } from "@/components/site/care";
+import { Closing } from "@/components/site/closing";
+import { Intake } from "@/components/site/intake";
+import { gsap, ScrollTrigger } from "@/lib/gsap";
 
 export default function HomePage() {
-  const [isIntakeOpen, setIsIntakeOpen] = useState(false);
+  const [intakeOpen, setIntakeOpen] = useState(false);
 
   useEffect(() => {
-    const lenis = new Lenis({
-      duration: 1.2,
-      easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      orientation: "vertical",
-      gestureOrientation: "vertical",
-      smoothWheel: true,
-      wheelMultiplier: 1,
-      touchMultiplier: 2,
-      infinite: false,
-    } as any);
+    // Reduced motion: native scrolling, and no animation loop at all.
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-    function raf(time: number) {
-      lenis.raf(time);
-      requestAnimationFrame(raf);
-    }
+    const lenis = new Lenis({ lerp: 0.09, smoothWheel: true });
 
-    requestAnimationFrame(raf);
+    // One clock for the page: GSAP's ticker drives Lenis, and each Lenis scroll
+    // updates ScrollTrigger. A second requestAnimationFrame loop would just be two
+    // loops competing every frame.
+    const tick = (time: number) => lenis.raf(time * 1000);
+    lenis.on("scroll", ScrollTrigger.update);
+    gsap.ticker.add(tick);
+    gsap.ticker.lagSmoothing(0);
 
     return () => {
+      gsap.ticker.remove(tick);
       lenis.destroy();
     };
   }, []);
 
   return (
     <>
-      <Navbar />
+      <Stage />
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] focus:rounded-full focus:bg-ember focus:px-5 focus:py-3 focus:font-mono focus:text-xs focus:uppercase focus:tracking-[0.2em] focus:text-ink"
+      >
+        Skip to content
+      </a>
 
-      <main className="relative">
-        <Hero onInitiateSprint={() => setIsIntakeOpen(true)} />
+      <Nav onStart={() => setIntakeOpen(true)} />
 
-        <div id="flagships">
-          <FlagshipGrid />
-        </div>
-
-        <Capabilities />
+      <main id="main">
+        <Hero onStart={() => setIntakeOpen(true)} />
+        <Work />
+        <Method />
+        <Care />
       </main>
 
-      <Footer />
-
-      <IntakeDrawer
-        isOpen={isIntakeOpen}
-        onClose={() => setIsIntakeOpen(false)}
-      />
+      <Closing onStart={() => setIntakeOpen(true)} />
+      <Intake open={intakeOpen} onClose={() => setIntakeOpen(false)} />
     </>
   );
 }

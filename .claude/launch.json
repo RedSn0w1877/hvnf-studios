@@ -2,6 +2,12 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "hvnf-studios",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "-p", "3003"],
+      "port": 3003
+    },
+    {
       "name": "kroma-labs",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--prefix", "kroma-labs"],
