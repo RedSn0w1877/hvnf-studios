@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { useDeviceProfile, useHeavyActive, usePageVisible } from "@/lib/perf";
+import { useHeavyActive, usePageVisible } from "@/lib/perf";
 
 /**
  * The stage: every pixel of WebGL on this site, in one context.
@@ -14,8 +14,11 @@ import { useDeviceProfile, useHeavyActive, usePageVisible } from "@/lib/perf";
  *
  * Performance contract:
  *  - lite devices (phones, ≤4 cores, low memory, data-saver, reduced motion) never
- *    mount it; the body gradient underneath is the design there.
- *  - renders at 0.6–0.9 DPR: the imagery is soft, so fill rate is all that matters.
+ *    mount it at all; page.tsx keeps the .sky gradient and skips this module.
+ *  - resolution is measured, not assumed: AutoQuality samples frame time and trims
+ *    DPR until the page holds its budget, so a weak GPU loses sharpness in a
+ *    background image rather than frames everywhere.
+ *  - the terrain stops drawing once the hero scrolls away, which is most of the page.
  *  - frameloop stops when the tab is hidden, and drops to ~30fps while a live site
  *    embed is on screen, so two heavy contexts never fight for the GPU.
  *  - scroll position is read from a passive listener into a ref, never from layout
@@ -51,13 +54,22 @@ const FIELD_FRAG = /* glsl */ `
     return v;
   }
 
+  // Two octaves for the warp layer. It only feeds high smoothstep thresholds,
+  // where the third octave is curved away before it reaches the screen — so that
+  // octave was four hash lookups per pixel spent on nothing.
+  float fbm2(vec2 p) {
+    float v = 0.0, a = 0.5;
+    for (int i = 0; i < 2; i++) { v += a * noise(p); p *= 2.03; a *= 0.5; }
+    return v;
+  }
+
   void main() {
     vec2 uv = vUv;
     vec2 p = vec2((uv.x - 0.5) * uAspect, uv.y - 0.5) + uPointer * 0.05;
 
     float t = uTime * 0.018;
     float n1 = fbm(p * 1.5 + vec2(t, t * 0.6));
-    float n2 = fbm(p * 2.6 - vec2(t * 0.8, t * 1.2) + n1);
+    float n2 = fbm2(p * 2.6 - vec2(t * 0.8, t * 1.2) + n1);
 
     vec3 base   = vec3(0.027, 0.035, 0.055);
     vec3 deep   = vec3(0.043, 0.098, 0.118);
@@ -70,8 +82,10 @@ const FIELD_FRAG = /* glsl */ `
     col = mix(col, ember, smoothstep(0.62, 1.10, n1 * n2 * 2.0) * 0.45);
 
     // A slow beam crossing the room, so the surface is never completely static.
+    // Cubed by multiplication: pow() is a log2/exp2 pair on most hardware, and
+    // this runs on every pixel of a full-screen quad.
     float sweep = sin((uv.x * 0.8 + uv.y) * 1.4 - uTime * 0.07) * 0.5 + 0.5;
-    col += pow(sweep, 3.0) * 0.045;
+    col += sweep * sweep * sweep * 0.045;
 
     // Gentle vignette — enough to seat the type, not enough to crush the colour.
     float d = length(vec2((uv.x - 0.5) * uAspect, uv.y - 0.5));
@@ -206,8 +220,10 @@ function Field({ pointer }: { pointer: React.RefObject<Pointer> }) {
 }
 
 function Terrain({ pointer, heroFade }: { pointer: React.RefObject<Pointer>; heroFade: React.RefObject<number> }) {
-  // 120 × 64 segments: ~8k verts, all the work is in the vertex stage and costs nothing.
-  const geometry = useMemo(() => new THREE.PlaneGeometry(16, 8, 120, 64), []);
+  // 96 × 48. Wireframe is the expensive part, not the vertices: the renderer draws
+  // three edges per triangle, so this sheet is ~28k line segments a frame. Finer
+  // than this and the extra lines land inside a pixel of each other anyway.
+  const geometry = useMemo(() => new THREE.PlaneGeometry(16, 8, 96, 48), []);
   const material = useMemo(
     () =>
       new THREE.ShaderMaterial({
@@ -222,6 +238,7 @@ function Terrain({ pointer, heroFade }: { pointer: React.RefObject<Pointer>; her
   );
 
   const live = useRef<THREE.ShaderMaterial | null>(null);
+  const mesh = useRef<THREE.Mesh>(null);
   useEffect(() => {
     live.current = material;
     return () => {
@@ -234,17 +251,24 @@ function Terrain({ pointer, heroFade }: { pointer: React.RefObject<Pointer>; her
   useFrame((_, delta) => {
     const m = live.current;
     if (!m) return;
+    const fade = m.uniforms.uFade.value as number;
+
+    // Below this the sheet is invisible, and the rest of the page is spent there.
+    // Skipping the draw is worth more than any shader tuning inside it.
+    const shown = fade > 0.015;
+    if (mesh.current) mesh.current.visible = shown;
+    if (!shown && heroFade.current < 0.015) return;
+
     m.uniforms.uTime.value += Math.min(delta, 1 / 20);
     const p = m.uniforms.uPointer.value as THREE.Vector2;
     p.x += (pointer.current.x - p.x) * 0.06;
     p.y += (pointer.current.y - p.y) * 0.06;
     // Fades out as the hero leaves, so it never animates under the rest of the page.
-    const target = heroFade.current;
-    m.uniforms.uFade.value += (target - m.uniforms.uFade.value) * 0.08;
+    m.uniforms.uFade.value = fade + (heroFade.current - fade) * 0.08;
   });
 
   // Seated low and raked away, so the copy sits above the horizon rather than in the mesh.
-  return <mesh geometry={geometry} material={material} position={[0, -2.9, -1.2]} rotation={[-1.16, 0, 0]} />;
+  return <mesh ref={mesh} geometry={geometry} material={material} position={[0, -2.9, -1.2]} rotation={[-1.16, 0, 0]} />;
 }
 
 function Motes({ pointer, count }: { pointer: React.RefObject<Pointer>; count: number }) {
@@ -315,16 +339,72 @@ function DemandPump({ active }: { active: boolean }) {
   return null;
 }
 
+/**
+ * Resolution tiers, coarsest first. Fragment cost scales with the square of this
+ * number, so 0.9 → 0.65 is roughly half the shading work for a background whose
+ * whole job is to be soft.
+ */
+const DPR_TIERS = [0.5, 0.65, 0.8, 0.9] as const;
+
+/** 13.9ms — a frame here leaves room for the page's own work and still clears 72fps. */
+const BUDGET_MS = 1000 / 72;
+/** 9.1ms — comfortably inside a 110fps pace, so there is room to spend again. */
+const HEADROOM_MS = 1000 / 110;
+
+/**
+ * Holds the frame budget instead of hoping one fixed resolution suits every GPU.
+ *
+ * Samples frame time in windows of 60 and moves a tier when the median misses the
+ * budget, climbing back if the machine turns out to have headroom. Capped at a few
+ * moves so it settles rather than hunting between two tiers forever.
+ */
+function AutoQuality({ active, tier, onTier }: { active: boolean; tier: number; onTier: (tier: number) => void }) {
+  const frames = useRef<number[]>([]);
+  const warmup = useRef(0);
+  const moves = useRef(0);
+
+  useFrame((_, delta) => {
+    // A throttled embed loop and start-up jank are not signal about the GPU.
+    if (!active) {
+      frames.current.length = 0;
+      return;
+    }
+    if (warmup.current < 45) {
+      warmup.current += 1;
+      return;
+    }
+    if (moves.current >= 4) return;
+
+    const samples = frames.current;
+    samples.push(delta * 1000);
+    if (samples.length < 60) return;
+
+    samples.sort((a, b) => a - b);
+    const median = samples[30];
+    frames.current = [];
+
+    if (median > BUDGET_MS && tier > 0) {
+      moves.current += 1;
+      onTier(tier - 1);
+    } else if (median < HEADROOM_MS && tier < DPR_TIERS.length - 1) {
+      moves.current += 1;
+      onTier(tier + 1);
+    }
+  });
+
+  return null;
+}
+
 export function Stage() {
-  const { lite } = useDeviceProfile();
   const visible = usePageVisible();
   const heavy = useHeavyActive();
+  // Starts one step below the ceiling: a common machine holds this immediately,
+  // and AutoQuality moves either way from here within about a second.
+  const [tier, setTier] = useState(2);
   const pointer = useRef<Pointer>({ x: 0, y: 0 });
   const heroFade = useRef(1);
 
   useEffect(() => {
-    if (lite) return;
-
     const onMove = (e: PointerEvent) => {
       pointer.current.x = (e.clientX / window.innerWidth) * 2 - 1;
       pointer.current.y = -((e.clientY / window.innerHeight) * 2 - 1);
@@ -349,26 +429,24 @@ export function Stage() {
       window.removeEventListener("scroll", onScroll);
       cancelAnimationFrame(frame);
     };
-  }, [lite]);
+  }, []);
 
-  // Lite devices get the sky and nothing else: no context, no loop, no cost.
-  if (lite) return <div aria-hidden className="sky" />;
-
+  // Transparent: page.tsx already paints .sky behind this, and stacking a second
+  // full-screen gradient on top of it is a wasted paint of the whole viewport.
   return (
-    <div aria-hidden className="sky">
-      <div className="pointer-events-none absolute inset-0">
+    <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
       <Canvas
-        dpr={[0.6, 0.9]}
+        dpr={DPR_TIERS[tier]}
         frameloop={!visible ? "never" : heavy ? "demand" : "always"}
         camera={{ position: [0, 0, 6], fov: 45 }}
         gl={{ antialias: false, alpha: true, powerPreference: "low-power", depth: false, stencil: false }}
       >
+        <AutoQuality active={visible && !heavy} tier={tier} onTier={setTier} />
         <DemandPump active={visible && heavy} />
         <Field pointer={pointer} />
         <Terrain pointer={pointer} heroFade={heroFade} />
         <Motes pointer={pointer} count={260} />
       </Canvas>
-      </div>
     </div>
   );
 }

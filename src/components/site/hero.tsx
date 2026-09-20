@@ -1,6 +1,7 @@
 "use client";
 
-import { motion, useReducedMotion } from "motion/react";
+import { useRef } from "react";
+import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
 import { ArrowDown } from "lucide-react";
 import { Magnetic, SETTLE, WordReveal } from "./kit";
 
@@ -19,10 +20,22 @@ const MARKS = [
  */
 export function Hero({ onStart }: { onStart: () => void }) {
   const reduce = useReducedMotion();
+  const section = useRef<HTMLElement>(null);
+
+  // The copy drifts up and dims as the hero leaves, so it hands the page over to
+  // the work instead of scrolling away as a flat sheet. Transform and opacity
+  // only — the compositor owns both, and neither touches layout.
+  const { scrollYProgress } = useScroll({ target: section, offset: ["start start", "end start"] });
+  const lift = useTransform(scrollYProgress, [0, 1], ["0%", "16%"]);
+  const dim = useTransform(scrollYProgress, [0, 0.72], [1, 0]);
 
   return (
-    <section id="top" className="relative flex min-h-[100svh] items-center overflow-hidden pb-24 pt-28">
-      <div className="shell w-full">
+    <section
+      ref={section}
+      id="top"
+      className="relative flex min-h-[100svh] items-center overflow-hidden pb-24 pt-28"
+    >
+      <motion.div className="shell w-full" style={reduce ? undefined : { y: lift, opacity: dim }}>
         <motion.p
           initial={reduce ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -64,20 +77,21 @@ export function Hero({ onStart }: { onStart: () => void }) {
           </Magnetic>
         </motion.div>
 
-        <motion.dl
-          initial={reduce ? false : { opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 1, ease: SETTLE, delay: 0.8 }}
-          className="mt-20 grid max-w-2xl grid-cols-1 gap-px border-y border-rule sm:grid-cols-3"
-        >
-          {MARKS.map((mark) => (
-            <div key={mark.k} className="py-5 sm:px-5 sm:first:pl-0">
+        <dl className="mt-20 grid max-w-2xl grid-cols-1 gap-px border-y border-rule sm:grid-cols-3">
+          {MARKS.map((mark, i) => (
+            <motion.div
+              key={mark.k}
+              initial={reduce ? false : { opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: SETTLE, delay: 0.8 + i * 0.12 }}
+              className="py-5 sm:px-5 sm:first:pl-0"
+            >
               <dt className="eyebrow">{mark.k}</dt>
               <dd className="mt-2 font-mono text-sm text-bone">{mark.v}</dd>
-            </div>
+            </motion.div>
           ))}
-        </motion.dl>
-      </div>
+        </dl>
+      </motion.div>
     </section>
   );
 }

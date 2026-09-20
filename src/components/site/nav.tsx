@@ -111,7 +111,7 @@ export function Nav({ onStart }: { onStart: () => void }) {
       }`}
     >
       <div className="shell flex h-16 items-center justify-between gap-6">
-        <a href="#top" className="group flex items-baseline gap-2.5" aria-label="HVNF Studios, back to top">
+        <a href="#top" className="group flex min-h-11 items-baseline gap-2.5 py-3" aria-label="HVNF Studios, back to top">
           <span className="font-mono text-sm font-semibold tracking-tight text-bone">HVNF</span>
           <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted transition-colors group-hover:text-ember">
             Studios

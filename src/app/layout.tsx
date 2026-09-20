@@ -1,10 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
+import { SITE_URL } from "@/lib/studio";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://hvnf.dev"),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "HVNF Studios — fast bespoke websites for local business",
     template: "%s — HVNF Studios",

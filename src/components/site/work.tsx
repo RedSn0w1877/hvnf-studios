@@ -77,6 +77,7 @@ const BUILDS: readonly Build[] = [
 function Frame({ build, live }: { build: Build; live: boolean }) {
   const [mounted, setMounted] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const reduce = useReducedMotion();
 
   useEffect(() => {
     if (!live) return;
@@ -149,6 +150,28 @@ function Frame({ build, live }: { build: Build; live: boolean }) {
       ) : null}
 
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/70 via-transparent to-transparent" />
+
+      {/*
+        Only once the frame has actually loaded — the poster underneath says
+        "loading" until then, and claiming both at once would be a lie about which
+        one the visitor is looking at.
+      */}
+      {loaded ? (
+        <motion.span
+          initial={reduce ? false : { opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: SETTLE }}
+          className="pointer-events-none absolute right-3 top-3 inline-flex items-center gap-2 rounded-full border border-rule bg-ink/85 px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.2em] text-ash"
+        >
+          <motion.span
+            aria-hidden
+            animate={reduce ? undefined : { opacity: [1, 0.3, 1] }}
+            transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+            className="block h-1.5 w-1.5 rounded-full bg-arc"
+          />
+          Running live
+        </motion.span>
+      ) : null}
     </div>
   );
 }

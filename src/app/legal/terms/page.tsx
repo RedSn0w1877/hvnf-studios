@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { LegalPage } from "@/components/site/legal-page";
+import { STUDIO_EMAIL } from "@/lib/studio";
 
 export const metadata: Metadata = {
   title: "Terms",
@@ -54,7 +55,8 @@ export default function TermsPage() {
           heading: "Contact",
           body: (
             <p>
-              Questions about these terms go to <a className="text-ember hover:underline" href="mailto:studio@hvnf.dev">studio@hvnf.dev</a>.
+              Questions about these terms go to{" "}
+              <a className="text-ember hover:underline" href={`mailto:${STUDIO_EMAIL}`}>{STUDIO_EMAIL}</a>.
             </p>
           ),
         },

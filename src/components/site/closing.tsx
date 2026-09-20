@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { STUDIO_EMAIL } from "@/lib/studio";
 import { Magnetic, Reveal, WordReveal } from "./kit";
-
-const STUDIO_EMAIL = "studio@hvnf.dev";
 
 /** The last thing on the page: one ask, one alternative, then the small print. */
 export function Closing({ onStart }: { onStart: () => void }) {

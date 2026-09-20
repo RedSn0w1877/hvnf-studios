@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { ArrowLeft, ArrowRight, Check, X } from "lucide-react";
+import { STUDIO_EMAIL } from "@/lib/studio";
 import { Magnetic, SETTLE } from "./kit";
 
 /**
@@ -13,8 +14,6 @@ import { Magnetic, SETTLE } from "./kit";
  * visitor's mail client addressed to the studio — a real path that works offline
  * of any backend, and never claims to have sent something it did not.
  */
-
-const STUDIO_EMAIL = "studio@hvnf.dev";
 
 const KINDS = [
   { id: "new", label: "A new site", note: "Nothing there yet, or starting over" },

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { LegalPage } from "@/components/site/legal-page";
+import { STUDIO_EMAIL } from "@/lib/studio";
 
 export const metadata: Metadata = {
   title: "Privacy",
@@ -55,7 +56,8 @@ export default function PrivacyPage() {
           heading: "Contact",
           body: (
             <p>
-              Privacy questions go to <a className="text-ember hover:underline" href="mailto:studio@hvnf.dev">studio@hvnf.dev</a>.
+              Privacy questions go to{" "}
+              <a className="text-ember hover:underline" href={`mailto:${STUDIO_EMAIL}`}>{STUDIO_EMAIL}</a>.
             </p>
           ),
         },

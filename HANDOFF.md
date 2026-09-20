@@ -9,14 +9,36 @@ Last updated 2026-09-20. Read this first. Long background: `HVNF-HANDBOOK.md` (f
 - **Repos:** the three demos are git submodules (`.gitmodules` points at `github.com/RedSn0w1877/<name>`), all on branch `improve/site-polish`. Commit inside each demo first, then commit the updated pointers in the root. **Nothing has been pushed.**
 - Preview servers: kroma 3000, apex 3001, aetheria 3002, root 3003 (`.claude/launch.json`).
 
+## Measuring frame rate (read this before trying)
+
+`requestAnimationFrame` is frozen whenever the Browser pane is hidden, so every FPS
+number measured that way is meaningless and the js tool just times out. The pane has
+to be **open and on screen** in the app. Screenshots and DOM reads still work while
+hidden; frame timing does not.
+
+To measure the real bundle rather than the dev server, `npm run build`, then serve
+`out/` at `/hvnf-studios/` (the export carries a basePath) and sample frame deltas
+over a couple of seconds, reporting the median and p95, not just the mean.
+
+**No frame-rate figure has ever been measured on this site.** Do not quote one.
+
 ## Open items
 
-1. Push the demo branches and the root only when the user asks. The demos deploy to GitHub Pages (`redsn0w1877.github.io/<repo>/`); the root site has no deploy pipeline yet (studio plan names Vercel). Ask before deploying.
-2. Kroma and Apex heroes and 3D scenes were blank in a hidden browser pane (hidden tabs pause animation), so their WebGL draw and intro animations were **not** visually confirmed this round. Recheck with the Browser pane open.
-3. Apex: the telemetry marker pulse now animates `scale` instead of `r` (motion wrote `r="undefined"`). Confirm the console stays clean and the pulse looks right.
-4. Finish the mobile audit at 375px on the demos (type scaling, per-section overflow, remaining tap targets under 44px, Kroma's pinned schematic on a short screen, Aetheria's tabbed ritual) and the root's Method, Care, Closing and Intake.
-5. `studio@hvnf.dev` appears in the root site's closing section. Confirm it is a real inbox with the user, or replace it.
-6. The root site has no ESLint. Add it only if the user wants it, and give them the install command rather than running it.
+1. Measure frame rate on the studio site with the pane open, idle and while
+   scrolling, and check `AutoQuality` settles on a tier instead of hunting. The
+   target the user set is 75fps minimum, 120 where the display allows.
+2. Kroma and Apex heroes and 3D scenes have still never been seen drawing (same
+   hidden-pane problem). Recheck with the pane open.
+3. Apex: the telemetry marker pulse now animates `scale` instead of `r` (motion wrote
+   `r="undefined"`). Confirm the console stays clean and the pulse looks right.
+4. Finish the mobile audit at 375px on the demos (type scaling, per-section overflow,
+   remaining tap targets under 44px, Kroma's pinned schematic on a short screen,
+   Aetheria's tabbed ritual).
+5. `SITE_URL` in `src/lib/studio.ts` still points at GitHub Pages, and
+   `inquiries@hvnfstudios.com` does not exist until the user buys hvnfstudios.com.
+   Switch both together when the domain lands.
+6. The root site has no ESLint. Add it only if the user wants it, and give them the
+   install command rather than running it.
 
 ## Rules from the user (still in force)
 
