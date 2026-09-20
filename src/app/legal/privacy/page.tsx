@@ -13,11 +13,11 @@ export default function PrivacyPage() {
       updated="September 2026"
       clauses={[
         {
-          heading: "This site collects nothing",
+          heading: "Analytics and advertising",
           body: (
             <p>
-              There is no analytics, no advertising and no tracking cookie on this site. We do not know who you are or
-              that you visited.
+              We do not use analytics, advertising or tracking cookies on this site. Hosting providers and embedded
+              showcases receive the technical requests described below.
             </p>
           ),
         },
@@ -25,7 +25,7 @@ export default function PrivacyPage() {
           heading: "The project form",
           body: (
             <p>
-              Everything you type into the project form stays in your browser. Pressing send opens your own email app
+              Everything you type into the project form stays in your browser. Opening an email draft launches your email app
               with the details filled in, so nothing reaches us until you send that email yourself. Close the tab
               instead and it is gone.
             </p>

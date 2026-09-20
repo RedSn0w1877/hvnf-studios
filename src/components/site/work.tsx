@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { ArrowUpRight } from "lucide-react";
 import { gsap, useGSAP } from "@/lib/gsap";
-import { setHeavyActive, useDeviceProfile } from "@/lib/perf";
+import { setHeavyActive, useDeviceProfile, usePageVisible } from "@/lib/perf";
 import { Reveal, SectionHead, SETTLE, TiltCard, WordReveal } from "./kit";
 
 /**
@@ -79,11 +79,7 @@ function Frame({ build, live }: { build: Build; live: boolean }) {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    if (!live) {
-      setMounted(false);
-      setLoaded(false);
-      return;
-    }
+    if (!live) return;
     const id = window.setTimeout(() => setMounted(true), 300);
     return () => window.clearTimeout(id);
   }, [live]);
@@ -98,13 +94,44 @@ function Frame({ build, live }: { build: Build; live: boolean }) {
     <div className={`relative h-full w-full overflow-hidden bg-gradient-to-br ${build.poster}`}>
       <div
         aria-hidden
-        className={`absolute inset-0 flex flex-col justify-end gap-2 p-6 transition-opacity duration-1000 ${loaded ? "opacity-0" : "opacity-100"}`}
+        className={`absolute inset-0 transition-opacity duration-700 ${loaded ? "opacity-0" : "opacity-100"}`}
       >
-        <span className="h-px w-2/3" style={{ background: build.accent, opacity: 0.55 }} />
-        <span className="h-px w-1/3 bg-white/15" />
-        <span className="mt-3 font-mono text-[10px] uppercase tracking-[0.3em] text-white/40">
-          {mounted ? "Loading live build…" : "Live build"}
-        </span>
+        <svg viewBox="0 0 480 300" className="h-full w-full" fill="none">
+          <g stroke={build.accent} strokeWidth="1.2">
+            {build.id === "kroma" ? (
+              <g transform="translate(88 65) rotate(-12 150 85)">
+                <rect width="300" height="150" rx="12" fill="#191b1e" />
+                <rect x="10" y="10" width="280" height="130" rx="7" opacity="0.4" />
+                {Array.from({ length: 48 }, (_, i) => (
+                  <rect key={i} x={20 + (i % 12) * 22} y={20 + Math.floor(i / 12) * 24} width="18" height="19" rx="3" opacity={i % 12 === 0 ? 1 : 0.4} />
+                ))}
+                <rect x="80" y="118" width="134" height="13" rx="3" />
+              </g>
+            ) : build.id === "apex" ? (
+              <g transform="translate(60 50)">
+                <path d="M20 133 Q55 122 91 61 L143 76 Q178 72 199 102 L298 135 Q338 144 345 164 L31 170 Q9 166 20 133Z" fill="#20251f" />
+                <path d="M19 167 Q142 184 345 163 L336 183 Q152 210 25 188Z" fill="#ccff00" fillOpacity="0.18" />
+                <path d="M118 90 182 110 M109 102 177 122 M100 115 169 135 M52 145 Q160 155 308 161" opacity="0.65" />
+                <path d="M4 109 H57 M272 104 H357 M10 208 H305" opacity="0.3" />
+              </g>
+            ) : (
+              <g transform="translate(170 35)">
+                <rect x="35" width="70" height="36" rx="7" fill="#a88243" fillOpacity="0.25" />
+                <path d="M38 38 V61 Q6 73 8 103 L14 220 Q70 241 126 220 L132 103 Q134 73 102 61 V38Z" fill="#c6b88e" fillOpacity="0.1" />
+                <path d="M20 148 Q70 139 120 148 L116 212 Q70 225 24 212Z" fill="#a88243" fillOpacity="0.28" />
+                {[30, 46, 62, 78, 94, 110].map((x) => <path key={x} d={`M${x} 89 V214`} opacity="0.3" />)}
+                <rect x="42" y="108" width="56" height="57" rx="1" fill="#d8cfb4" fillOpacity="0.15" />
+              </g>
+            )}
+          </g>
+        </svg>
+        <div className="absolute inset-x-0 bottom-0 flex flex-col gap-2 p-6">
+          <span className="h-px w-2/3" style={{ background: build.accent, opacity: 0.55 }} />
+          <span className="h-px w-1/3 bg-white/15" />
+          <span className="mt-3 font-mono text-[10px] uppercase tracking-[0.3em] text-white/40">
+            {mounted ? "Loading live build…" : "Portfolio concept — explore the build"}
+          </span>
+        </div>
       </div>
 
       {mounted ? (
@@ -117,7 +144,7 @@ function Frame({ build, live }: { build: Build; live: boolean }) {
           // Rendered at desktop size then scaled, so the preview is the real desktop
           // layout rather than the site's mobile breakpoint.
           className={`pointer-events-none absolute left-0 top-0 origin-top-left border-0 transition-opacity duration-[1200ms] ${loaded ? "opacity-100" : "opacity-0"}`}
-          style={{ width: 1440, height: 900, transform: "scale(0.3333)" }}
+          style={{ width: 1440, height: 900, transform: "scale(calc(100cqw / 1440px))" }}
         />
       ) : null}
 
@@ -164,15 +191,15 @@ function Step({ build, position, live }: { build: Build; position: number; live:
             href={build.href}
             target="_blank"
             rel="noreferrer"
-            className="mt-8 inline-flex items-center gap-2 border-b border-rule-strong pb-1 font-mono text-[11px] uppercase tracking-[0.2em] text-bone transition-colors hover:border-ember hover:text-ember"
+            className="mt-8 inline-flex min-h-11 items-center gap-2 border-b border-rule-strong pb-1 font-mono text-[11px] uppercase tracking-[0.2em] text-bone transition-colors hover:border-ember hover:text-ember"
           >
             Open the live build
             <ArrowUpRight size={14} aria-hidden />
           </a>
         </div>
 
-        <TiltCard className="relative aspect-[16/10] w-full overflow-hidden rounded-lg border border-rule shadow-[0_40px_90px_-50px_rgba(0,0,0,0.95)] [content-visibility:auto]">
-          <Frame build={build} live={live} />
+        <TiltCard className="relative aspect-[16/10] w-full overflow-hidden rounded-lg border border-rule shadow-[0_40px_90px_-50px_rgba(0,0,0,0.95)] [container-type:inline-size]">
+          <Frame key={`${build.id}-${live}`} build={build} live={live} />
         </TiltCard>
       </motion.article>
     </div>
@@ -183,13 +210,11 @@ export function Work() {
   const section = useRef<HTMLElement>(null);
   const [liveId, setLiveId] = useState<string | null>(null);
   const { lite } = useDeviceProfile();
+  const visible = usePageVisible();
 
-  // One observer for every step; the most central one owns the single embed.
+  // Only the step crossing the viewport's central band owns an embed.
   useEffect(() => {
-    if (lite) {
-      setLiveId(null);
-      return;
-    }
+    if (lite || !visible) return;
     const steps = section.current?.querySelectorAll<HTMLElement>("[data-step]");
     if (!steps?.length) return;
 
@@ -201,7 +226,7 @@ export function Work() {
           if (id) ratios.set(id, entry.isIntersecting ? entry.intersectionRatio : 0);
         }
         let best: string | null = null;
-        let bestRatio = 0.3;
+        let bestRatio = 0;
         ratios.forEach((ratio, id) => {
           if (ratio > bestRatio) {
             bestRatio = ratio;
@@ -210,12 +235,12 @@ export function Work() {
         });
         setLiveId(best);
       },
-      { threshold: [0, 0.3, 0.6, 0.9] },
+      { rootMargin: "-35% 0px -35% 0px", threshold: [0, 0.1, 0.3, 0.6] },
     );
 
     steps.forEach((step) => observer.observe(step));
     return () => observer.disconnect();
-  }, [lite]);
+  }, [lite, visible]);
 
   useGSAP(
     () => {
@@ -260,7 +285,7 @@ export function Work() {
 
         <div className="mt-20 flex flex-col gap-20 md:gap-28">
           {BUILDS.map((build, i) => (
-            <Step key={build.id} build={build} position={i} live={!lite && liveId === build.id} />
+            <Step key={build.id} build={build} position={i} live={!lite && visible && liveId === build.id} />
           ))}
         </div>
       </div>

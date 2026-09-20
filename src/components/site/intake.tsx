@@ -48,7 +48,7 @@ export function Intake({ open, onClose }: { open: boolean; onClose: () => void }
   const [timing, setTiming] = useState<string | null>(null);
   const [details, setDetails] = useState<Details>(EMPTY);
   const [errors, setErrors] = useState<Partial<Record<keyof Details, string>>>({});
-  const [sent, setSent] = useState(false);
+  const [emailRequested, setEmailRequested] = useState(false);
 
   const panel = useRef<HTMLDivElement>(null);
   const opener = useRef<Element | null>(null);
@@ -61,7 +61,7 @@ export function Intake({ open, onClose }: { open: boolean; onClose: () => void }
     const first = panel.current?.querySelector<HTMLElement>("button, input, textarea, a[href]");
     first?.focus();
     return () => {
-      (opener.current as HTMLElement | null)?.focus?.();
+      (opener.current as HTMLElement | null)?.focus?.({ preventScroll: true });
     };
   }, [open]);
 
@@ -106,7 +106,7 @@ export function Intake({ open, onClose }: { open: boolean; onClose: () => void }
       setTiming(null);
       setDetails(EMPTY);
       setErrors({});
-      setSent(false);
+      setEmailRequested(false);
     }, 500);
     return () => window.clearTimeout(id);
   }, [open]);
@@ -133,6 +133,7 @@ export function Intake({ open, onClose }: { open: boolean; onClose: () => void }
   const canAdvance = step === 0 ? Boolean(kind) : step === 1 ? Boolean(timing) : true;
 
   const next = () => {
+    if (!canAdvance) return;
     if (step === 2) {
       const found = validate(details);
       setErrors(found);
@@ -143,22 +144,7 @@ export function Intake({ open, onClose }: { open: boolean; onClose: () => void }
     setStep((s) => Math.min(3, s + 1));
   };
 
-  const celebrate = async () => {
-    setSent(true);
-    if (reduce) return;
-    // Loaded on use, not on page load: nobody pays for confetti they never see.
-    const confetti = (await import("canvas-confetti")).default;
-    confetti({
-      particleCount: 70,
-      spread: 64,
-      startVelocity: 28,
-      ticks: 160,
-      scalar: 0.9,
-      origin: { x: 0.5, y: 0.62 },
-      colors: ["#E9A568", "#7FD1C1", "#F4F1EA"],
-      disableForReducedMotion: true,
-    });
-  };
+  const openEmail = () => setEmailRequested(true);
 
   const stepLabel = ["What you need", "Timing", "About you", "Review"][step] ?? "";
 
@@ -192,7 +178,7 @@ export function Intake({ open, onClose }: { open: boolean; onClose: () => void }
                   Start a project
                 </h2>
                 <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.28em] text-muted">
-                  {sent ? "Ready to send" : `Step ${step + 1} of 4 — ${stepLabel}`}
+                  {emailRequested ? "Ready to send" : `Step ${step + 1} of 4 — ${stepLabel}`}
                 </p>
               </div>
               <button
@@ -324,8 +310,8 @@ export function Intake({ open, onClose }: { open: boolean; onClose: () => void }
                   {step === 3 ? (
                     <div>
                       <p className="text-[15px] leading-relaxed text-ash">
-                        Here is your brief. Sending it opens your email app with everything filled in — nothing leaves
-                        this page until you press send there.
+                        Here is your brief. Open an email draft with everything filled in, then send it from your email
+                        app. Your details stay on this page until you choose to send them.
                       </p>
                       <dl className="mt-6 divide-y divide-rule border-y border-rule">
                         {[
@@ -345,7 +331,7 @@ export function Intake({ open, onClose }: { open: boolean; onClose: () => void }
                         ))}
                       </dl>
 
-                      {sent ? (
+                      {emailRequested ? (
                         <p className="mt-6 flex items-center gap-2 text-[15px] text-arc" role="status">
                           <Check size={16} aria-hidden />
                           Your email app should be open. If it did not, write to {STUDIO_EMAIL}.
@@ -362,20 +348,20 @@ export function Intake({ open, onClose }: { open: boolean; onClose: () => void }
                 type="button"
                 onClick={() => setStep((s) => Math.max(0, s - 1))}
                 disabled={step === 0}
-                className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-muted transition-colors hover:text-bone disabled:opacity-40"
+                className="inline-flex min-h-11 shrink-0 items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-muted transition-colors hover:text-bone disabled:opacity-40"
               >
                 <ArrowLeft size={14} aria-hidden />
                 Back
               </button>
 
               {step < 3 ? (
-                <Magnetic onClick={next} className={canAdvance ? "" : "pointer-events-none opacity-40"}>
+                <Magnetic onClick={next} disabled={!canAdvance} className={canAdvance ? "" : "cursor-not-allowed opacity-40"}>
                   Continue
                   <ArrowRight size={14} aria-hidden />
                 </Magnetic>
               ) : (
-                <Magnetic href={mailto} onClick={celebrate}>
-                  Send the brief
+                <Magnetic href={mailto} onClick={openEmail} className="!px-4 !text-[10px] sm:!px-7 sm:!text-xs">
+                  Open email draft
                   <ArrowRight size={14} aria-hidden />
                 </Magnetic>
               )}

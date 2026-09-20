@@ -10,7 +10,7 @@ export function LegalPage({ title, updated, clauses }: { title: string; updated:
     <main className="shell max-w-2xl py-20 md:py-28">
       <Link
         href="/"
-        className="inline-flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.24em] text-muted transition-colors hover:text-bone"
+        className="inline-flex min-h-11 items-center gap-3 font-mono text-[10px] uppercase tracking-[0.24em] text-muted transition-colors hover:text-bone"
       >
         <ArrowLeft size={14} aria-hidden />
         Back to the studio

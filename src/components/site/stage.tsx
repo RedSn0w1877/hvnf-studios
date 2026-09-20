@@ -127,8 +127,8 @@ const TERRAIN_FRAG = /* glsl */ `
 
     // Fade the sheet out at its edges so it has no visible border, and dissolve it
     // toward the horizon so it reads as distance rather than a grid pinned to glass.
-    float edge = smoothstep(0.0, 0.22, vUv.x) * smoothstep(1.0, 0.78, vUv.x)
-               * smoothstep(0.0, 0.26, vUv.y) * smoothstep(1.0, 0.62, vUv.y);
+    float edge = smoothstep(0.0, 0.22, vUv.x) * (1.0 - smoothstep(0.78, 1.0, vUv.x))
+               * smoothstep(0.0, 0.26, vUv.y) * (1.0 - smoothstep(0.62, 1.0, vUv.y));
 
     float strength = (0.05 + abs(vRipple) * 0.34) * edge * uFade;
     gl_FragColor = vec4(col, strength);
@@ -159,7 +159,7 @@ const MOTE_FRAG = /* glsl */ `
   varying float vAlpha;
   void main() {
     float d = length(gl_PointCoord - 0.5);
-    float a = smoothstep(0.5, 0.0, d);
+    float a = 1.0 - smoothstep(0.0, 0.5, d);
     gl_FragColor = vec4(vec3(0.77, 0.85, 0.82), a * a * vAlpha * 0.45);
   }
 `;
@@ -331,12 +331,11 @@ export function Stage() {
     };
 
     // Passive listener → ref. The frame loop never touches layout to learn this.
-    let queued = false;
+    let frame = 0;
     const onScroll = () => {
-      if (queued) return;
-      queued = true;
-      requestAnimationFrame(() => {
-        queued = false;
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
         const past = window.scrollY / Math.max(1, window.innerHeight);
         heroFade.current = Math.max(0, 1 - past * 1.4);
       });
@@ -348,6 +347,7 @@ export function Stage() {
     return () => {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(frame);
     };
   }, [lite]);
 

@@ -65,7 +65,7 @@ export function WordReveal({
         <span key={`${word}-${i}`}>
           <span className="-mb-[0.14em] -mt-[0.18em] inline-block overflow-hidden pb-[0.14em] pt-[0.18em] align-bottom">
             <motion.span
-              className="inline-block will-change-transform"
+              className="inline-block"
               initial={reduce ? false : { y: "106%" }}
               {...(immediate
                 ? { animate: settled }
@@ -115,13 +115,14 @@ type MagneticProps = {
   className?: string;
   variant?: "ember" | "ghost";
   ariaLabel?: string;
+  disabled?: boolean;
 };
 
 /**
  * A control that leans toward the cursor — a damped spring, no bounce — with a
  * sheen that crosses it on hover. Disabled entirely under reduced motion.
  */
-export function Magnetic({ children, onClick, href, className, variant = "ember", ariaLabel }: MagneticProps) {
+export function Magnetic({ children, onClick, href, className, variant = "ember", ariaLabel, disabled = false }: MagneticProps) {
   const reduce = useReducedMotion();
   const dx = useMotionValue(0);
   const dy = useMotionValue(0);
@@ -131,7 +132,7 @@ export function Magnetic({ children, onClick, href, className, variant = "ember"
   const innerY = useTransform(y, (v) => v * 0.3);
 
   const onMove = (event: MouseEvent<HTMLElement>) => {
-    if (reduce) return;
+    if (reduce || !window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
     const box = event.currentTarget.getBoundingClientRect();
     dx.set((event.clientX - (box.left + box.width / 2)) * 0.25);
     dy.set((event.clientY - (box.top + box.height / 2)) * 0.35);
@@ -179,6 +180,7 @@ export function Magnetic({ children, onClick, href, className, variant = "ember"
   return (
     <motion.button
       type="button"
+      disabled={disabled}
       onClick={onClick}
       onMouseMove={onMove}
       onMouseLeave={reset}
@@ -201,7 +203,7 @@ export function TiltCard({ children, className }: { children: ReactNode; classNa
   const springY = useSpring(ry, { stiffness: 120, damping: 18 });
 
   const onMove = (event: MouseEvent<HTMLDivElement>) => {
-    if (reduce) return;
+    if (reduce || !window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
     const box = event.currentTarget.getBoundingClientRect();
     const px = (event.clientX - box.left) / box.width - 0.5;
     const py = (event.clientY - box.top) / box.height - 0.5;

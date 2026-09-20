@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import Lenis from "lenis";
-import { Stage } from "@/components/site/stage";
+import { useDeviceProfile } from "@/lib/perf";
 import { Nav } from "@/components/site/nav";
 import { Hero } from "@/components/site/hero";
 import { Work } from "@/components/site/work";
@@ -12,14 +13,17 @@ import { Closing } from "@/components/site/closing";
 import { Intake } from "@/components/site/intake";
 import { gsap, ScrollTrigger } from "@/lib/gsap";
 
+const Stage = dynamic(() => import("@/components/site/stage").then((module) => module.Stage), { ssr: false });
+
 export default function HomePage() {
   const [intakeOpen, setIntakeOpen] = useState(false);
+  const { lite } = useDeviceProfile();
+  const closeIntake = useCallback(() => setIntakeOpen(false), []);
 
   useEffect(() => {
-    // Reduced motion: native scrolling, and no animation loop at all.
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (lite || intakeOpen) return;
 
-    const lenis = new Lenis({ lerp: 0.09, smoothWheel: true });
+    const lenis = new Lenis({ lerp: 0.09, smoothWheel: true, anchors: true, autoToggle: true });
 
     // One clock for the page: GSAP's ticker drives Lenis, and each Lenis scroll
     // updates ScrollTrigger. A second requestAnimationFrame loop would just be two
@@ -33,11 +37,12 @@ export default function HomePage() {
       gsap.ticker.remove(tick);
       lenis.destroy();
     };
-  }, []);
+  }, [lite, intakeOpen]);
 
   return (
     <>
-      <Stage />
+      <div aria-hidden className="sky" />
+      {!lite ? <Stage /> : null}
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[80] focus:rounded-full focus:bg-ember focus:px-5 focus:py-3 focus:font-mono focus:text-xs focus:uppercase focus:tracking-[0.2em] focus:text-ink"
@@ -55,7 +60,7 @@ export default function HomePage() {
       </main>
 
       <Closing onStart={() => setIntakeOpen(true)} />
-      <Intake open={intakeOpen} onClose={() => setIntakeOpen(false)} />
+      <Intake open={intakeOpen} onClose={closeIntake} />
     </>
   );
 }

@@ -1,0 +1,9 @@
+[submodule "kroma-labs"]
+	path = kroma-labs
+	url = https://github.com/RedSn0w1877/kroma-labs.git
+[submodule "apex-dynamics"]
+	path = apex-dynamics
+	url = https://github.com/RedSn0w1877/apex-dynamics.git
+[submodule "aetheria-botanicals"]
+	path = aetheria-botanicals
+	url = https://github.com/RedSn0w1877/aetheria-botanicals.git

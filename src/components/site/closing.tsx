@@ -36,10 +36,10 @@ export function Closing({ onStart }: { onStart: () => void }) {
           </div>
 
           <nav aria-label="Legal" className="flex flex-wrap items-center gap-6 font-mono text-[10px] uppercase tracking-[0.2em] text-muted">
-            <Link href="/legal/terms" className="transition-colors hover:text-bone">
+            <Link href="/legal/terms" className="inline-flex min-h-11 items-center transition-colors hover:text-bone">
               Terms
             </Link>
-            <Link href="/legal/privacy" className="transition-colors hover:text-bone">
+            <Link href="/legal/privacy" className="inline-flex min-h-11 items-center transition-colors hover:text-bone">
               Privacy
             </Link>
             <span className="text-muted/70">© {year} HVNF Studios</span>

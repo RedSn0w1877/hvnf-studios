@@ -23,18 +23,19 @@ export function Nav({ onStart }: { onStart: () => void }) {
   const [lifted, setLifted] = useState(false);
   const [active, setActive] = useState<string>("");
   const lastY = useRef(0);
+  const header = useRef<HTMLElement>(null);
+  const menuButton = useRef<HTMLButtonElement>(null);
   const reduce = useReducedMotion();
   const { scrollYProgress } = useScroll();
   const progress = useSpring(scrollYProgress, { stiffness: 120, damping: 28, mass: 0.4 });
 
   // One passive listener, rAF-throttled: no layout reads on the scroll path.
   useEffect(() => {
-    let queued = false;
+    let frame = 0;
     const onScroll = () => {
-      if (queued) return;
-      queued = true;
-      requestAnimationFrame(() => {
-        queued = false;
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
         const y = window.scrollY;
         setLifted(y > 16);
         setHidden(y > 240 && y > lastY.current);
@@ -42,7 +43,10 @@ export function Nav({ onStart }: { onStart: () => void }) {
       });
     };
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(frame);
+    };
   }, []);
 
   // Which section owns the viewport middle.
@@ -64,19 +68,41 @@ export function Nav({ onStart }: { onStart: () => void }) {
   // Escape closes the mobile sheet; the page never scrolls behind it.
   useEffect(() => {
     if (!open) return;
+    const previousOverflow = document.documentElement.style.overflow;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") {
+        setOpen(false);
+        menuButton.current?.focus({ preventScroll: true });
+      }
+      if (e.key !== "Tab") return;
+      const controls = Array.from(header.current?.querySelectorAll<HTMLElement>("a[href], button:not([disabled])") ?? [])
+        .filter((element) => element.getClientRects().length > 0);
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last?.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first?.focus();
+      }
     };
+    const media = window.matchMedia("(min-width: 768px)");
+    const closeOnDesktop = () => { if (media.matches) setOpen(false); };
+    media.addEventListener("change", closeOnDesktop);
     document.addEventListener("keydown", onKey);
     document.documentElement.style.overflow = "hidden";
     return () => {
+      media.removeEventListener("change", closeOnDesktop);
       document.removeEventListener("keydown", onKey);
-      document.documentElement.style.overflow = "";
+      document.documentElement.style.overflow = previousOverflow;
     };
   }, [open]);
 
   return (
     <motion.header
+      ref={header}
+      onFocusCapture={() => setHidden(false)}
       initial={false}
       animate={{ y: hidden && !open ? "-100%" : "0%" }}
       transition={{ duration: 0.5, ease: SETTLE }}
@@ -121,6 +147,7 @@ export function Nav({ onStart }: { onStart: () => void }) {
         </nav>
 
         <button
+          ref={menuButton}
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
