@@ -56,7 +56,12 @@ export function Care() {
           {PILLARS.map((pillar, i) => (
             <Reveal key={pillar.title} delay={i * 0.06}>
               <TiltCard className="h-full">
-                <div className="group h-full bg-carbon p-8 transition-colors duration-500 hover:bg-graphite md:p-10">
+                {/*
+                  Translucent so the stage drifts behind the grid. The hairlines
+                  between cards come from the wrapper's 9%-white fill showing
+                  through the 1px gaps, so both layers have to stay see-through.
+                */}
+                <div className="group h-full bg-carbon/55 p-8 backdrop-blur-[3px] transition-colors duration-500 hover:bg-graphite/70 md:p-10">
                   <pillar.icon
                     className="h-5 w-5 text-ember transition-transform duration-500 group-hover:-translate-y-0.5"
                     strokeWidth={1.5}

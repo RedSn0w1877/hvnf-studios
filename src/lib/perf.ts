@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 
 export type DeviceProfile = { lite: boolean };
 
@@ -64,6 +64,25 @@ export const isHeavyActive = () => heavyCount > 0;
 function subscribeVisibility(notify: () => void) {
   document.addEventListener("visibilitychange", notify);
   return () => document.removeEventListener("visibilitychange", notify);
+}
+
+/**
+ * A media query as a boolean. Server and first client render both answer false,
+ * so markup matches on hydration and the real answer lands on the next commit.
+ */
+export function useMedia(query: string): boolean {
+  return useSyncExternalStore(
+    useCallback(
+      (notify: () => void) => {
+        const list = window.matchMedia(query);
+        list.addEventListener("change", notify);
+        return () => list.removeEventListener("change", notify);
+      },
+      [query],
+    ),
+    () => window.matchMedia(query).matches,
+    () => false,
+  );
 }
 
 export function usePageVisible(): boolean {
