@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useHeavyActive, usePageVisible } from "@/lib/perf";
-import { pillarStore } from "@/lib/stage-store";
 
 /**
  * The stage: every pixel of WebGL on this site, in one context.
@@ -179,61 +178,6 @@ const MOTE_FRAG = /* glsl */ `
   }
 `;
 
-/**
- * The pillar the work section orbits: a column of particles climbing a slow
- * vortex. Every particle's path is a pure function of time and its own seed, so
- * the whole column is one draw call with nothing to simulate on the CPU.
- */
-const PILLAR_VERT = /* glsl */ `
-  precision mediump float;
-  attribute float aSeed;
-  attribute float aRing;
-  uniform float uTime;
-  uniform float uPixelRatio;
-  uniform float uStrength;
-  varying float vAlpha;
-  varying float vRing;
-
-  void main() {
-    float speed = 0.22 + aSeed * 0.34;
-    // Climb and wrap, so the column never empties out at either end.
-    float rise = fract(aSeed * 7.31 + uTime * speed * 0.12);
-    float y = (rise - 0.5) * 9.0;
-
-    // Twist tightens toward the middle, which reads as the column drawing in.
-    float waist = 1.0 - 0.34 * exp(-y * y * 0.16);
-    float radius = (0.30 + aRing * 0.62) * waist;
-
-    float angle = aSeed * 43.0 + uTime * (0.5 + aRing * 0.5) + y * 0.55;
-    // A slow breath so the surface is liquid rather than a rigid cylinder.
-    radius *= 1.0 + 0.16 * sin(uTime * 0.7 + aSeed * 19.0);
-
-    vec3 p = vec3(cos(angle) * radius, y, sin(angle) * radius);
-    vec4 mv = modelViewMatrix * vec4(p, 1.0);
-    gl_Position = projectionMatrix * mv;
-    gl_PointSize = (1.1 + aSeed * 2.3) * uPixelRatio * (150.0 / -mv.z);
-
-    // Fade the ends so the column dissolves instead of stopping at a hard edge.
-    float ends = smoothstep(0.0, 0.16, rise) * (1.0 - smoothstep(0.82, 1.0, rise));
-    vAlpha = ends * uStrength * (0.35 + 0.65 * aSeed);
-    vRing = aRing;
-  }
-`;
-
-const PILLAR_FRAG = /* glsl */ `
-  precision mediump float;
-  varying float vAlpha;
-  varying float vRing;
-  void main() {
-    float d = length(gl_PointCoord - 0.5);
-    float a = 1.0 - smoothstep(0.0, 0.5, d);
-    // Ember at the core, arc toward the outside.
-    vec3 core = vec3(0.914, 0.647, 0.408);
-    vec3 edge = vec3(0.318, 0.680, 0.640);
-    gl_FragColor = vec4(mix(core, edge, vRing), a * a * vAlpha * 0.85);
-  }
-`;
-
 type Pointer = { x: number; y: number };
 
 function Field({ pointer }: { pointer: React.RefObject<Pointer> }) {
@@ -384,72 +328,6 @@ function Motes({ pointer, count }: { pointer: React.RefObject<Pointer>; count: n
   return <points geometry={geometry} material={material} frustumCulled={false} />;
 }
 
-function Pillar({ count }: { count: number }) {
-  const dpr = useThree((s) => s.viewport.dpr);
-
-  const { geometry, material } = useMemo(() => {
-    let seed = 0x2f9a31;
-    const rand = () => {
-      seed ^= seed << 13;
-      seed ^= seed >>> 17;
-      seed ^= seed << 5;
-      return ((seed >>> 0) % 100000) / 100000;
-    };
-    const positions = new Float32Array(count * 3);
-    const seeds = new Float32Array(count);
-    const rings = new Float32Array(count);
-    for (let i = 0; i < count; i++) {
-      seeds[i] = rand();
-      // Biased outward so the column has a bright core and a soft halo.
-      rings[i] = Math.sqrt(rand());
-    }
-    const g = new THREE.BufferGeometry();
-    g.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-    g.setAttribute("aSeed", new THREE.BufferAttribute(seeds, 1));
-    g.setAttribute("aRing", new THREE.BufferAttribute(rings, 1));
-    const m = new THREE.ShaderMaterial({
-      vertexShader: PILLAR_VERT,
-      fragmentShader: PILLAR_FRAG,
-      uniforms: { uTime: { value: 0 }, uPixelRatio: { value: 1 }, uStrength: { value: 0 } },
-      transparent: true,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-    });
-    return { geometry: g, material: m };
-  }, [count]);
-
-  const live = useRef<THREE.ShaderMaterial | null>(null);
-  const points = useRef<THREE.Points>(null);
-  useEffect(() => {
-    live.current = material;
-    return () => {
-      live.current = null;
-      geometry.dispose();
-      material.dispose();
-    };
-  }, [geometry, material]);
-
-  useFrame((_, delta) => {
-    const m = live.current;
-    if (!m) return;
-    const current = m.uniforms.uStrength.value as number;
-    const target = pillarStore.value;
-    const next = current + (target - current) * 0.09;
-    m.uniforms.uStrength.value = next;
-
-    // The work section is a slice of the page; everywhere else this is nothing
-    // but a wasted draw of a few thousand additive points.
-    const shown = next > 0.01 || target > 0.01;
-    if (points.current) points.current.visible = shown;
-    if (!shown) return;
-
-    m.uniforms.uTime.value += Math.min(delta, 1 / 20);
-    m.uniforms.uPixelRatio.value = dpr;
-  });
-
-  return <points ref={points} geometry={geometry} material={material} frustumCulled={false} />;
-}
-
 /** While an embed is live the canvas renders on demand, pumped at ~30fps. */
 function DemandPump({ active }: { active: boolean }) {
   const invalidate = useThree((s) => s.invalidate);
@@ -568,7 +446,6 @@ export function Stage() {
         <Field pointer={pointer} />
         <Terrain pointer={pointer} heroFade={heroFade} />
         <Motes pointer={pointer} count={260} />
-        <Pillar count={2600} />
       </Canvas>
     </div>
   );

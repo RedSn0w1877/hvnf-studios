@@ -5,7 +5,6 @@ import { motion, useReducedMotion } from "motion/react";
 import { ArrowUpRight } from "lucide-react";
 import { gsap } from "@/lib/gsap";
 import { setHeavyActive, useDeviceProfile, useMedia, usePageVisible } from "@/lib/perf";
-import { pillarStore } from "@/lib/stage-store";
 import { Reveal, SectionHead, SETTLE, TiltCard, WordReveal } from "./kit";
 
 /**
@@ -227,18 +226,187 @@ const SPAN = 1.86;
 const GAP = 0.62;
 /** A little over half a turn: enough to read as an orbit, not so much that a
  *  card spends the whole time facing away. */
-const SWEEP = Math.PI * 1.28;
+/** A full turn: each card goes all the way round the column, passing behind it. */
+const SWEEP = Math.PI * 2;
+/** -1 brings cards up the right-hand side first. */
+const DIRECTION = -1;
 /** Widest swing, and how much of the stage it may use. A fixed radius either
  *  buries the orbit on a small window or wastes a big one. */
 const RADIUS_MAX = 340;
 const RADIUS_RATIO = 0.26;
 const RISE = 0.82;
+/** Stacking order of the column itself. Cards on the near half of the orbit sit
+ *  above this, cards on the far half below, which is what actually puts them
+ *  behind the particles rather than faking it with opacity. */
+const PILLAR_Z = 40;
 
 const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
 const smooth = (edge0: number, edge1: number, v: number) => {
   const t = clamp01((v - edge0) / (edge1 - edge0));
   return t * t * (3 - 2 * t);
 };
+
+type Mote = {
+  ang: number;
+  ring: number;
+  u: number;
+  speed: number;
+  size: number;
+  kind: 0 | 1 | 2 | 3;
+  tint: number;
+  alpha: number;
+  spin: number;
+  twist: number;
+};
+
+const EMBER: [number, number, number] = [233, 165, 104];
+const ARC: [number, number, number] = [127, 209, 193];
+
+function rgba(tint: number, a: number) {
+  const r = Math.round(EMBER[0] + (ARC[0] - EMBER[0]) * tint);
+  const g = Math.round(EMBER[1] + (ARC[1] - EMBER[1]) * tint);
+  const b = Math.round(EMBER[2] + (ARC[2] - EMBER[2]) * tint);
+  return `rgba(${r},${g},${b},${a.toFixed(3)})`;
+}
+
+/**
+ * The column the builds orbit, on its own 2D canvas.
+ *
+ * It is deliberately not part of the shared WebGL stage: that canvas is fixed
+ * behind the whole page, so nothing could ever pass in front of it. Sitting in
+ * the section's own stacking context is what lets a card go behind the column.
+ *
+ * Trails come from erasing the canvas a little each frame instead of clearing
+ * it, so every mote smears along its own path for free. The erase is scaled by
+ * frame time, otherwise trails would be twice as long at 60fps as at 120.
+ */
+function PillarCanvas() {
+  const canvas = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const el = canvas.current;
+    const ctx = el?.getContext("2d");
+    if (!el || !ctx) return;
+
+    let w = 1;
+    let h = 1;
+    const resize = () => {
+      const rect = el.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      w = Math.max(1, Math.round(rect.width));
+      h = Math.max(1, Math.round(rect.height));
+      el.width = Math.round(w * dpr);
+      el.height = Math.round(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    resize();
+    const observer = new ResizeObserver(resize);
+    observer.observe(el);
+
+    const motes: Mote[] = Array.from({ length: 260 }, () => {
+      const r = Math.random();
+      return {
+        ang: Math.random() * Math.PI * 2,
+        // Biased outward so the column reads as a wide, loose cloud rather than
+        // a dense rope down the middle.
+        ring: 0.18 + Math.pow(Math.random(), 0.55) * 0.82,
+        u: Math.random(),
+        speed: 0.012 + Math.random() * 0.045,
+        size: 0.6 + Math.random() * 3.4,
+        kind: (r < 0.52 ? 0 : r < 0.72 ? 1 : r < 0.9 ? 2 : 3) as Mote["kind"],
+        tint: Math.random(),
+        alpha: 0.05 + Math.random() * 0.2,
+        spin: (Math.random() - 0.5) * 2.4,
+        twist: 0.4 + Math.random() * 1.5,
+      };
+    });
+
+    let time = 0;
+    let last = 0;
+
+    const tick = (t: number) => {
+      const dt = last ? Math.min((t - last) / 1000, 1 / 20) : 1 / 60;
+      last = t;
+      time += dt;
+
+      // Erase rather than clear: what is left behind becomes the trail.
+      ctx.globalCompositeOperation = "destination-out";
+      ctx.fillStyle = `rgba(0,0,0,${(1 - Math.exp(-dt * 5.5)).toFixed(3)})`;
+      ctx.fillRect(0, 0, w, h);
+      ctx.globalCompositeOperation = "source-over";
+
+      const cx = w / 2;
+      const spread = w * 0.42;
+
+      for (const m of motes) {
+        m.u += m.speed * dt;
+        if (m.u > 1) m.u -= 1;
+
+        const a = m.ang + DIRECTION * (time * 0.16 * m.twist + m.u * Math.PI * 2 * 0.6);
+        const depth = Math.cos(a);
+        const near = 0.68 + 0.32 * (depth * 0.5 + 0.5);
+
+        const x = cx + Math.sin(a) * spread * m.ring;
+        const y = h - m.u * h * 1.12 + h * 0.06;
+        // Dissolve at both ends so the column has no hard cut.
+        const ends = Math.min(1, m.u / 0.16) * Math.min(1, (1 - m.u) / 0.18);
+        const alpha = m.alpha * near * ends;
+        if (alpha <= 0.004 || y < -40 || y > h + 40) continue;
+
+        const size = m.size * near;
+        ctx.fillStyle = rgba(m.tint, alpha);
+        ctx.strokeStyle = rgba(m.tint, alpha);
+
+        if (m.kind === 0) {
+          ctx.beginPath();
+          ctx.arc(x, y, size, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (m.kind === 1) {
+          ctx.lineWidth = 0.8;
+          ctx.beginPath();
+          ctx.arc(x, y, size * 1.9, 0, Math.PI * 2);
+          ctx.stroke();
+        } else if (m.kind === 2) {
+          // A streak leaning along its own climb.
+          ctx.lineWidth = Math.max(0.6, size * 0.5);
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(x, y + size * 3.4);
+          ctx.lineTo(x + depth * size * 0.7, y - size * 3.4);
+          ctx.stroke();
+        } else {
+          const s = size * 1.5;
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(time * m.spin);
+          ctx.beginPath();
+          ctx.moveTo(0, -s);
+          ctx.lineTo(s * 0.7, 0);
+          ctx.lineTo(0, s);
+          ctx.lineTo(-s * 0.7, 0);
+          ctx.closePath();
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+    };
+
+    gsap.ticker.add(tick);
+    return () => {
+      gsap.ticker.remove(tick);
+      observer.disconnect();
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvas}
+      aria-hidden
+      className="pointer-events-none absolute inset-y-0 left-1/2 w-[min(820px,92%)] -translate-x-1/2"
+      style={{ zIndex: PILLAR_Z }}
+    />
+  );
+}
 
 function Orbit({ liveId, onLive }: { liveId: string | null; onLive: (id: string | null) => void }) {
   const track = useRef<HTMLDivElement>(null);
@@ -257,9 +425,6 @@ function Orbit({ liveId, onLive }: { liveId: string | null; onLive: (id: string 
       const span = rect.height - vh;
       const p = span > 0 ? clamp01(-rect.top / span) : 0;
 
-      // The pillar only exists while this section owns the screen.
-      pillarStore.value = Math.min(clamp01(1 - rect.top / vh), clamp01(rect.bottom / vh));
-
       const stageH = stageEl.clientHeight;
       const radius = Math.min(RADIUS_MAX, stageEl.clientWidth * RADIUS_RATIO);
       let bestFace = -2;
@@ -275,17 +440,20 @@ function Orbit({ liveId, onLive }: { liveId: string | null; onLive: (id: string 
           continue;
         }
 
-        const a = (t - 0.5) * SWEEP;
+        const a = (t - 0.5) * SWEEP * DIRECTION;
         const face = Math.cos(a);
         const edge = smooth(0, 0.16, t) * (1 - smooth(0.84, 1, t));
-        const opacity = edge * (0.12 + 0.88 * Math.max(0, face));
+        // The far half stays readable — the column itself does the hiding now, so
+        // it does not also need to be faded most of the way out.
+        const opacity = edge * (0.42 + 0.58 * (0.5 + 0.5 * face));
 
         el.style.visibility = opacity < 0.012 ? "hidden" : "visible";
         el.style.transform = `translate3d(${(Math.sin(a) * radius).toFixed(2)}px, ${((0.5 - t) * RISE * stageH).toFixed(2)}px, ${((face - 1) * radius).toFixed(2)}px)`;
         el.style.opacity = opacity.toFixed(3);
-        el.style.zIndex = String(100 + Math.round(face * 50));
-        // Only the card you can actually read should catch the pointer.
-        el.style.pointerEvents = opacity > 0.55 ? "auto" : "none";
+        // Near half in front of the column, far half behind it.
+        el.style.zIndex = String(face >= 0 ? PILLAR_Z + 10 + Math.round(face * 20) : PILLAR_Z - 10 + Math.round(face * 20));
+        // Only a card on the near side should catch the pointer.
+        el.style.pointerEvents = face > 0.25 && opacity > 0.6 ? "auto" : "none";
 
         if (edge > 0.5 && face > bestFace) {
           bestFace = face;
@@ -302,18 +470,20 @@ function Orbit({ liveId, onLive }: { liveId: string | null; onLive: (id: string 
 
     gsap.ticker.add(tick);
     tick();
-    return () => {
-      gsap.ticker.remove(tick);
-      pillarStore.value = 0;
-    };
+    return () => gsap.ticker.remove(tick);
   }, [onLive]);
 
   return (
     <div ref={track} className="relative h-[340vh]">
-      <div ref={stage} className="sticky top-0 h-screen overflow-hidden">
-        <div className="absolute inset-0" style={{ perspective: "1150px" }}>
-          {BUILDS.map((build, i) => (
-            <div key={build.id} className="pointer-events-none absolute inset-0 flex items-center justify-center px-6">
+      {/*
+        Perspective sits on the stage, not on a wrapper around the cards: a
+        wrapper would be its own stacking context and trap every card above the
+        column. Here each card's z-index competes with the canvas directly.
+      */}
+      <div ref={stage} className="sticky top-0 h-screen overflow-hidden" style={{ perspective: "1150px" }}>
+        <PillarCanvas />
+        {BUILDS.map((build, i) => (
+          <div key={build.id} className="pointer-events-none absolute inset-0 flex items-center justify-center px-6">
               <article
                 ref={(el) => {
                   cards.current[i] = el;
@@ -329,10 +499,9 @@ function Orbit({ liveId, onLive }: { liveId: string | null; onLive: (id: string 
                     <Details build={build} compact />
                   </div>
                 </div>
-              </article>
-            </div>
-          ))}
-        </div>
+            </article>
+          </div>
+        ))}
       </div>
     </div>
   );
