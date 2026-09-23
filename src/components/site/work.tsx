@@ -43,7 +43,7 @@ const BUILDS: readonly Build[] = [
     sector: "Machined hardware",
     blurb:
       "A shop for machined aluminium keyboards. The board is built in 3D in the browser, comes apart layer by layer as you scroll, and every switch plays its own sound.",
-    built: ["React Three Fiber", "ScrollTrigger", "Web Audio"],
+    built: ["3D in the browser", "Scroll-driven motion", "Real switch sounds"],
     href: "https://redsn0w1877.github.io/kroma-labs/",
     poster: "from-zinc-900 via-neutral-900 to-stone-950",
     accent: "#E9A568",
@@ -55,7 +55,7 @@ const BUILDS: readonly Build[] = [
     sector: "Performance footwear",
     blurb:
       "A shop for a carbon-plated trail running shoe. The shoe is drawn in code and splits into its five layers as you scroll, next to charts you can drag through yourself.",
-    built: ["Shoe drawn in code", "GPU particles", "Live charts"],
+    built: ["Shoe drawn in code", "Airflow particles", "Charts you can drag"],
     href: "https://redsn0w1877.github.io/apex-dynamics/",
     poster: "from-slate-950 via-zinc-900 to-black",
     accent: "#CCFF00",
@@ -67,7 +67,7 @@ const BUILDS: readonly Build[] = [
     sector: "Slow-extraction perfumery",
     blurb:
       "A shop for slow-made botanical perfume. The glass bottle catches the light as it turns, the liquid takes the colour of the scent you mix, and the story moves sideways as you scroll.",
-    built: ["Custom shaders", "Real glass", "Sideways scroll"],
+    built: ["Hand-written graphics", "Glass that refracts", "Sideways scroll"],
     href: "https://redsn0w1877.github.io/aetheria-botanicals/",
     poster: "from-[#1d2a20] via-[#14201a] to-[#0b1210]",
     accent: "#A88243",
@@ -301,7 +301,7 @@ export function Work() {
             <p className="max-w-sm text-[15px] leading-relaxed text-ash">
               {lite
                 ? "Each build below is live on the web. Open one and try it — the 3D and the scrolling are all real."
-                : "Each frame below is the real site, running right here as you scroll. Open one and try it."}
+                : "Whichever build is in the middle of your screen is the real site, loaded and running right here. Open any of them and try it yourself."}
             </p>
           </Reveal>
         </div>

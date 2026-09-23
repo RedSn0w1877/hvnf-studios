@@ -7,8 +7,10 @@ import { Magnetic, SETTLE, WordReveal } from "./kit";
 
 const HEADLINE = "Websites that load fast and turn visitors into booked work.";
 
+// The reader is a plumber or a dentist, not a developer. A framework name is the
+// wrong first fact to hand them; what the site does for them is the right one.
 const MARKS = [
-  { k: "Built on", v: "Next.js" },
+  { k: "Built for", v: "Phones first" },
   { k: "Shipped in", v: "Days, not months" },
   { k: "Ownership", v: "Yours, outright" },
 ] as const;
