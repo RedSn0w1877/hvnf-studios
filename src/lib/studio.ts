@@ -9,6 +9,9 @@ export const STUDIO_EMAIL = "inquiries@hvnfstudios.com";
 
 /**
  * Where the site is actually served, used to build absolute URLs for metadata.
- * Swap to https://hvnfstudios.com once the domain points here.
+ * Read at build time only (layout metadata), where VERCEL is set on Vercel builds.
+ * Swap the Vercel value to https://hvnfstudios.com once that domain points here.
  */
-export const SITE_URL = "https://redsn0w1877.github.io/hvnf-studios";
+export const SITE_URL = process.env.VERCEL
+  ? "https://redsn0w.xyz"
+  : "https://redsn0w1877.github.io/hvnf-studios";

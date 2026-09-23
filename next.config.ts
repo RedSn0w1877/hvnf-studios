@@ -2,7 +2,9 @@ import type { NextConfig } from 'next';
 
 const config: NextConfig = {
   output: 'export',
-  basePath: process.env.NODE_ENV === 'production' ? '/hvnf-studios' : '',
+  // GitHub Pages serves this repo under /hvnf-studios/; Vercel serves it at the
+  // root of its own domain. Vercel sets VERCEL=1 during its builds.
+  basePath: process.env.NODE_ENV === 'production' && !process.env.VERCEL ? '/hvnf-studios' : '',
   trailingSlash: true,
   reactStrictMode: true,
 
