@@ -235,6 +235,13 @@ const DIRECTION = -1;
 const RADIUS_MAX = 340;
 const RADIUS_RATIO = 0.26;
 const RISE = 0.82;
+/**
+ * How much of the orbit angle the card face actually turns through. At 1 it is a
+ * true carousel panel, which means it goes edge-on at the sides and shows its
+ * mirrored back at the rear. At 0.4 the peak turn is about 72°, so it visibly
+ * rotates around the column and catches the light without ever reversing.
+ */
+const CARD_TURN = 0.4;
 /** Stacking order of the column itself. Cards on the near half of the orbit sit
  *  above this, cards on the far half below, which is what actually puts them
  *  behind the particles rather than faking it with opacity. */
@@ -303,7 +310,32 @@ function PillarCanvas() {
     const observer = new ResizeObserver(resize);
     observer.observe(el);
 
-    const motes: Mote[] = Array.from({ length: 260 }, () => {
+    // A soft radial sprite per tint, drawn once. Every glowing mote is a scaled
+    // copy of one of these: the gradient is the blur, and stretching it is what
+    // makes a streak, so nothing pays for a per-frame gradient or a canvas blur.
+    const sprites = Array.from({ length: 6 }, (_, i) => {
+      const tint = i / 5;
+      const r = Math.round(EMBER[0] + (ARC[0] - EMBER[0]) * tint);
+      const g = Math.round(EMBER[1] + (ARC[1] - EMBER[1]) * tint);
+      const b = Math.round(EMBER[2] + (ARC[2] - EMBER[2]) * tint);
+      const s = 64;
+      const spr = document.createElement("canvas");
+      spr.width = s;
+      spr.height = s;
+      const sx = spr.getContext("2d");
+      if (sx) {
+        const grad = sx.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+        grad.addColorStop(0, `rgba(${r},${g},${b},1)`);
+        grad.addColorStop(0.28, `rgba(${r},${g},${b},0.42)`);
+        grad.addColorStop(0.62, `rgba(${r},${g},${b},0.09)`);
+        grad.addColorStop(1, `rgba(${r},${g},${b},0)`);
+        sx.fillStyle = grad;
+        sx.fillRect(0, 0, s, s);
+      }
+      return spr;
+    });
+
+    const motes: Mote[] = Array.from({ length: 300 }, () => {
       const r = Math.random();
       return {
         ang: Math.random() * Math.PI * 2,
@@ -311,29 +343,29 @@ function PillarCanvas() {
         // a dense rope down the middle.
         ring: 0.18 + Math.pow(Math.random(), 0.55) * 0.82,
         u: Math.random(),
-        speed: 0.012 + Math.random() * 0.045,
-        size: 0.6 + Math.random() * 3.4,
-        kind: (r < 0.52 ? 0 : r < 0.72 ? 1 : r < 0.9 ? 2 : 3) as Mote["kind"],
+        speed: 0.03 + Math.random() * 0.1,
+        size: 1.4 + Math.random() * 7,
+        kind: (r < 0.58 ? 0 : r < 0.74 ? 1 : r < 0.9 ? 2 : 3) as Mote["kind"],
         tint: Math.random(),
-        alpha: 0.05 + Math.random() * 0.2,
+        alpha: 0.05 + Math.random() * 0.17,
         spin: (Math.random() - 0.5) * 2.4,
         twist: 0.4 + Math.random() * 1.5,
       };
     });
 
     let time = 0;
-    let last = 0;
 
-    const tick = (t: number) => {
-      const dt = last ? Math.min((t - last) / 1000, 1 / 20) : 1 / 60;
-      last = t;
+    // GSAP hands the ticker elapsed seconds and delta in milliseconds. Reading
+    // the first argument as milliseconds makes every delta ~0, which is exactly
+    // what froze this column in place.
+    const tick = (_t: number, deltaMs: number) => {
+      const dt = Math.min((deltaMs || 16.7) / 1000, 1 / 20);
       time += dt;
 
       // Erase rather than clear: what is left behind becomes the trail.
       ctx.globalCompositeOperation = "destination-out";
-      ctx.fillStyle = `rgba(0,0,0,${(1 - Math.exp(-dt * 5.5)).toFixed(3)})`;
+      ctx.fillStyle = `rgba(0,0,0,${(1 - Math.exp(-dt * 3.4)).toFixed(3)})`;
       ctx.fillRect(0, 0, w, h);
-      ctx.globalCompositeOperation = "source-over";
 
       const cx = w / 2;
       const spread = w * 0.42;
@@ -342,53 +374,60 @@ function PillarCanvas() {
         m.u += m.speed * dt;
         if (m.u > 1) m.u -= 1;
 
-        const a = m.ang + DIRECTION * (time * 0.16 * m.twist + m.u * Math.PI * 2 * 0.6);
+        const a = m.ang + DIRECTION * (time * 0.22 * m.twist + m.u * Math.PI * 2 * 0.6);
         const depth = Math.cos(a);
-        const near = 0.68 + 0.32 * (depth * 0.5 + 0.5);
+        const near = 0.6 + 0.4 * (depth * 0.5 + 0.5);
 
         const x = cx + Math.sin(a) * spread * m.ring;
         const y = h - m.u * h * 1.12 + h * 0.06;
         // Dissolve at both ends so the column has no hard cut.
         const ends = Math.min(1, m.u / 0.16) * Math.min(1, (1 - m.u) / 0.18);
         const alpha = m.alpha * near * ends;
-        if (alpha <= 0.004 || y < -40 || y > h + 40) continue;
+        if (alpha <= 0.004 || y < -60 || y > h + 60) continue;
 
         const size = m.size * near;
-        ctx.fillStyle = rgba(m.tint, alpha);
-        ctx.strokeStyle = rgba(m.tint, alpha);
+        const sprite = sprites[Math.min(5, Math.floor(m.tint * 6))];
 
-        if (m.kind === 0) {
+        if (m.kind === 1) {
+          // A thin ring, drawn flat so it stays crisp against all that glow.
+          ctx.globalCompositeOperation = "source-over";
+          ctx.globalAlpha = 1;
+          ctx.strokeStyle = rgba(m.tint, alpha * 0.9);
+          ctx.lineWidth = 0.7;
           ctx.beginPath();
-          ctx.arc(x, y, size, 0, Math.PI * 2);
-          ctx.fill();
-        } else if (m.kind === 1) {
-          ctx.lineWidth = 0.8;
-          ctx.beginPath();
-          ctx.arc(x, y, size * 1.9, 0, Math.PI * 2);
+          ctx.arc(x, y, size * 1.6, 0, Math.PI * 2);
           ctx.stroke();
-        } else if (m.kind === 2) {
-          // A streak leaning along its own climb.
-          ctx.lineWidth = Math.max(0.6, size * 0.5);
-          ctx.lineCap = "round";
-          ctx.beginPath();
-          ctx.moveTo(x, y + size * 3.4);
-          ctx.lineTo(x + depth * size * 0.7, y - size * 3.4);
-          ctx.stroke();
-        } else {
-          const s = size * 1.5;
+          continue;
+        }
+
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = alpha;
+
+        if (m.kind === 2) {
+          // The same sprite, stretched along its climb: a streak of light.
+          const rw = size * 2.2;
+          const rh = size * 9;
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(depth * 0.3);
+          ctx.drawImage(sprite, -rw / 2, -rh / 2, rw, rh);
+          ctx.restore();
+        } else if (m.kind === 3) {
+          const s = size * 3.4;
           ctx.save();
           ctx.translate(x, y);
           ctx.rotate(time * m.spin);
-          ctx.beginPath();
-          ctx.moveTo(0, -s);
-          ctx.lineTo(s * 0.7, 0);
-          ctx.lineTo(0, s);
-          ctx.lineTo(-s * 0.7, 0);
-          ctx.closePath();
-          ctx.fill();
+          ctx.drawImage(sprite, -s / 2, -s / 2, s, s * 0.45);
+          ctx.drawImage(sprite, -s * 0.22, -s / 2, s * 0.45, s);
           ctx.restore();
+        } else {
+          const s = size * 4.2;
+          ctx.drawImage(sprite, x - s / 2, y - s / 2, s, s);
         }
       }
+
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "source-over";
     };
 
     gsap.ticker.add(tick);
@@ -427,6 +466,9 @@ function Orbit({ liveId, onLive }: { liveId: string | null; onLive: (id: string 
 
       const stageH = stageEl.clientHeight;
       const radius = Math.min(RADIUS_MAX, stageEl.clientWidth * RADIUS_RATIO);
+      // A card is about 640px tall. On a short window it has to shrink or it
+      // gets cut off top and bottom by the stage it is orbiting inside.
+      const fit = Math.min(1, stageH / 680);
       let bestFace = -2;
       let bestId: string | null = null;
 
@@ -447,8 +489,15 @@ function Orbit({ liveId, onLive }: { liveId: string | null; onLive: (id: string 
         // it does not also need to be faded most of the way out.
         const opacity = edge * (0.42 + 0.58 * (0.5 + 0.5 * face));
 
+        const lift = (0.5 - t) * RISE * stageH;
         el.style.visibility = opacity < 0.012 ? "hidden" : "visible";
-        el.style.transform = `translate3d(${(Math.sin(a) * radius).toFixed(2)}px, ${((0.5 - t) * RISE * stageH).toFixed(2)}px, ${((face - 1) * radius).toFixed(2)}px)`;
+        // Turn with the orbit, and tip slightly as it climbs, so the panel reads
+        // as a physical thing travelling around the column.
+        el.style.transform =
+          `translate3d(${(Math.sin(a) * radius).toFixed(2)}px, ${lift.toFixed(2)}px, ${((face - 1) * radius).toFixed(2)}px)` +
+          ` rotateY(${(a * CARD_TURN).toFixed(4)}rad)` +
+          ` rotateX(${(-(lift / stageH) * 9).toFixed(2)}deg)` +
+          ` scale(${fit.toFixed(3)})`;
         el.style.opacity = opacity.toFixed(3);
         // Near half in front of the column, far half behind it.
         el.style.zIndex = String(face >= 0 ? PILLAR_Z + 10 + Math.round(face * 20) : PILLAR_Z - 10 + Math.round(face * 20));
