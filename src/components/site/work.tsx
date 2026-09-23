@@ -228,7 +228,10 @@ const GAP = 0.62;
 /** A little over half a turn: enough to read as an orbit, not so much that a
  *  card spends the whole time facing away. */
 const SWEEP = Math.PI * 1.28;
-const RADIUS = 340;
+/** Widest swing, and how much of the stage it may use. A fixed radius either
+ *  buries the orbit on a small window or wastes a big one. */
+const RADIUS_MAX = 340;
+const RADIUS_RATIO = 0.26;
 const RISE = 0.82;
 
 const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -258,6 +261,7 @@ function Orbit({ liveId, onLive }: { liveId: string | null; onLive: (id: string 
       pillarStore.value = Math.min(clamp01(1 - rect.top / vh), clamp01(rect.bottom / vh));
 
       const stageH = stageEl.clientHeight;
+      const radius = Math.min(RADIUS_MAX, stageEl.clientWidth * RADIUS_RATIO);
       let bestFace = -2;
       let bestId: string | null = null;
 
@@ -277,7 +281,7 @@ function Orbit({ liveId, onLive }: { liveId: string | null; onLive: (id: string 
         const opacity = edge * (0.12 + 0.88 * Math.max(0, face));
 
         el.style.visibility = opacity < 0.012 ? "hidden" : "visible";
-        el.style.transform = `translate3d(${(Math.sin(a) * RADIUS).toFixed(2)}px, ${((0.5 - t) * RISE * stageH).toFixed(2)}px, ${((face - 1) * RADIUS).toFixed(2)}px)`;
+        el.style.transform = `translate3d(${(Math.sin(a) * radius).toFixed(2)}px, ${((0.5 - t) * RISE * stageH).toFixed(2)}px, ${((face - 1) * radius).toFixed(2)}px)`;
         el.style.opacity = opacity.toFixed(3);
         el.style.zIndex = String(100 + Math.round(face * 50));
         // Only the card you can actually read should catch the pointer.
@@ -315,7 +319,7 @@ function Orbit({ liveId, onLive }: { liveId: string | null; onLive: (id: string 
                   cards.current[i] = el;
                 }}
                 style={{ visibility: "hidden", willChange: "transform, opacity" }}
-                className="w-[min(92vw,31rem)]"
+                className="w-[min(78vw,31rem)]"
               >
                 <div className="overflow-hidden rounded-xl border border-rule bg-carbon/70 shadow-[0_50px_120px_-60px_rgba(0,0,0,1)] backdrop-blur-[2px]">
                   <div className="relative aspect-[16/10] w-full [container-type:inline-size]">
@@ -363,8 +367,10 @@ export function Work() {
   const { lite } = useDeviceProfile();
   const visible = usePageVisible();
   const reduce = useReducedMotion();
-  // The orbit needs width to swing through and motion permission to run at all.
-  const roomy = useMedia("(min-width: 1024px)");
+  // The orbit needs room to swing through and motion permission to run at all.
+  // Kept low on purpose: plenty of real windows sit between 800 and 1024, and
+  // at 1024 the whole thing silently fell back to the plain stack.
+  const roomy = useMedia("(min-width: 700px)");
   const orbiting = roomy && !lite && !reduce;
 
   const [liveId, setLiveId] = useState<string | null>(null);
