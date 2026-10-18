@@ -110,7 +110,7 @@ function Poster({ build, mounted }: { build: Build; mounted: boolean }) {
       <div className="absolute inset-x-0 bottom-0 flex flex-col gap-2 p-6">
         <span className="h-px w-2/3" style={{ background: build.accent, opacity: 0.55 }} />
         <span className="h-px w-1/3 bg-white/15" />
-        <span className="mt-3 font-mono text-[10px] uppercase tracking-[0.3em] text-white/40">
+        <span className="mt-3 font-mono text-[11px] uppercase tracking-[0.24em] text-white/75">
           {mounted ? "Loading live build…" : "Portfolio concept — explore the build"}
         </span>
       </div>
@@ -118,10 +118,38 @@ function Poster({ build, mounted }: { build: Build; mounted: boolean }) {
   );
 }
 
+/**
+ * The preview renders the real site at a "virtual window" sized to the card, so a
+ * small card shows the site's phone/tablet layout and a big one shows desktop.
+ * Text lands around 70% of its real size at every card size, instead of one
+ * fixed 1440px canvas shrinking until it is unreadable.
+ */
+const PREVIEW_SCALE = 0.7;
+
 function Frame({ build, live }: { build: Build; live: boolean }) {
   const [mounted, setMounted] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [view, setView] = useState({ w: 1024, h: 640, scale: PREVIEW_SCALE });
+  const box = useRef<HTMLDivElement>(null);
   const reduce = useReducedMotion();
+
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const measure = () => {
+      const cw = el.clientWidth;
+      const ch = el.clientHeight;
+      if (!cw || !ch) return;
+      // Steps of 10px keep the iframe from re-laying-out on every pixel of a resize.
+      const w = Math.min(1600, Math.max(360, Math.round(cw / PREVIEW_SCALE / 10) * 10));
+      const scale = cw / w;
+      setView((v) => (v.w === w && Math.abs(v.h - ch / scale) < 2 ? v : { w, h: Math.round(ch / scale), scale }));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!live) return;
@@ -136,7 +164,7 @@ function Frame({ build, live }: { build: Build; live: boolean }) {
   }, [mounted]);
 
   return (
-    <div className={`relative h-full w-full overflow-hidden bg-gradient-to-br ${build.poster}`}>
+    <div ref={box} className={`relative h-full w-full overflow-hidden bg-gradient-to-br ${build.poster}`}>
       <div aria-hidden className={`absolute inset-0 transition-opacity duration-700 ${loaded ? "opacity-0" : "opacity-100"}`}>
         <Poster build={build} mounted={mounted} />
       </div>
@@ -148,10 +176,8 @@ function Frame({ build, live }: { build: Build; live: boolean }) {
           loading="lazy"
           tabIndex={-1}
           onLoad={() => setLoaded(true)}
-          // Rendered at desktop size then scaled, so the preview is the real desktop
-          // layout rather than the site's mobile breakpoint.
           className={`pointer-events-none absolute left-0 top-0 origin-top-left border-0 transition-opacity duration-[1200ms] ${loaded ? "opacity-100" : "opacity-0"}`}
-          style={{ width: 1440, height: 900, transform: "scale(calc(100cqw / 1440px))" }}
+          style={{ width: view.w, height: view.h, transform: `scale(${view.scale})` }}
         />
       ) : null}
 
@@ -189,9 +215,9 @@ function Details({ build, compact }: { build: Build; compact?: boolean }) {
       <h3 className={`mt-4 font-semibold tracking-[-0.02em] text-bone ${compact ? "text-[1.6rem]" : "mt-5 text-[clamp(1.9rem,3.6vw,2.9rem)]"}`}>
         {build.title}
       </h3>
-      <p className={`mt-3 max-w-md leading-relaxed text-ash ${compact ? "text-[14px]" : "mt-4 text-[15px]"}`}>{build.blurb}</p>
+      <p className={`mt-3 max-w-md leading-relaxed text-ash ${compact ? "text-[14px] [@media(max-height:780px)]:line-clamp-3" : "mt-4 text-[15px]"}`}>{build.blurb}</p>
 
-      <ul className="mt-5 flex flex-wrap gap-2">
+      <ul className={`mt-5 flex flex-wrap gap-2 ${compact ? "[@media(max-height:780px)]:hidden" : ""}`}>
         {build.built.map((tool) => (
           <li key={tool} className="rounded-full border border-rule px-3 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
             {tool}
@@ -246,6 +272,12 @@ const CARD_TURN = 0.4;
  *  above this, cards on the far half below, which is what actually puts them
  *  behind the particles rather than faking it with opacity. */
 const PILLAR_Z = 40;
+// Card sizing: the preview keeps a fixed 1 : 0.625 shape, the text body beneath it
+// is roughly 300px, and the card never gets narrower than a phone-ish 280px.
+const CARD_MAX_W = 496;
+const CARD_MIN_W = 280;
+const CARD_BODY_H = 300;
+const CARD_IMG_RATIO = 0.625;
 
 const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
 const smooth = (edge0: number, edge1: number, v: number) => {
@@ -453,6 +485,22 @@ function Orbit({ liveId, onLive }: { liveId: string | null; onLive: (id: string 
   const cards = useRef<(HTMLElement | null)[]>([]);
   const front = useRef<string | null>(null);
 
+  // Morph the card to the window: as wide as fits, narrower when the stage is
+  // short so the text under the preview never has to shrink with it.
+  useEffect(() => {
+    const el = stage.current;
+    if (!el) return;
+    const size = () => {
+      const byWidth = Math.min(CARD_MAX_W, el.clientWidth * 0.78);
+      const byHeight = (el.clientHeight * 0.9 - CARD_BODY_H) / CARD_IMG_RATIO;
+      el.style.setProperty("--card-w", `${Math.round(Math.max(CARD_MIN_W, Math.min(byWidth, byHeight)))}px`);
+    };
+    size();
+    const ro = new ResizeObserver(size);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   useEffect(() => {
     const tick = () => {
       const trackEl = track.current;
@@ -466,9 +514,12 @@ function Orbit({ liveId, onLive }: { liveId: string | null; onLive: (id: string 
 
       const stageH = stageEl.clientHeight;
       const radius = Math.min(RADIUS_MAX, stageEl.clientWidth * RADIUS_RATIO);
-      // A card is about 640px tall. On a short window it has to shrink or it
-      // gets cut off top and bottom by the stage it is orbiting inside.
-      const fit = Math.min(1, stageH / 680);
+      // The card's width is set from the stage (see the effect below), so a short
+      // window gets a narrower, differently-proportioned card with text at full
+      // size. This scale is only the last resort if it is still too tall.
+      const first = cards.current[0];
+      const cardH = first ? first.offsetHeight : 0;
+      const fit = cardH > 0 ? Math.min(1, (stageH * 0.94) / cardH) : 1;
       let bestFace = -2;
       let bestId: string | null = null;
 
@@ -487,7 +538,7 @@ function Orbit({ liveId, onLive }: { liveId: string | null; onLive: (id: string 
         const edge = smooth(0, 0.16, t) * (1 - smooth(0.84, 1, t));
         // The far half stays readable — the column itself does the hiding now, so
         // it does not also need to be faded most of the way out.
-        const opacity = edge * (0.42 + 0.58 * (0.5 + 0.5 * face));
+        const opacity = edge * (0.58 + 0.42 * (0.5 + 0.5 * face));
 
         const lift = (0.5 - t) * RISE * stageH;
         el.style.visibility = opacity < 0.012 ? "hidden" : "visible";
@@ -538,10 +589,10 @@ function Orbit({ liveId, onLive }: { liveId: string | null; onLive: (id: string 
                   cards.current[i] = el;
                 }}
                 style={{ visibility: "hidden", willChange: "transform, opacity" }}
-                className="w-[min(78vw,31rem)]"
+                className="w-[var(--card-w,31rem)]"
               >
-                <div className="overflow-hidden rounded-xl border border-rule bg-carbon/70 shadow-[0_50px_120px_-60px_rgba(0,0,0,1)] backdrop-blur-[2px]">
-                  <div className="relative aspect-[16/10] w-full [container-type:inline-size]">
+                <div className="overflow-hidden rounded-xl border border-rule-strong bg-carbon/95 shadow-[0_50px_120px_-60px_rgba(0,0,0,1)]">
+                  <div className="relative w-full" style={{ aspectRatio: `1 / ${CARD_IMG_RATIO}` }}>
                     <Frame build={build} live={liveId === build.id} />
                   </div>
                   <div className="p-6 md:p-7">
@@ -572,7 +623,7 @@ function Stack({ liveId, lite }: { liveId: string | null; lite: boolean }) {
           className="grid gap-8 border-t border-rule pt-8 md:grid-cols-[1fr_1.05fr] md:items-center md:gap-12"
         >
           <Details build={build} />
-          <TiltCard className="relative aspect-[16/10] w-full overflow-hidden rounded-lg border border-rule shadow-[0_40px_90px_-50px_rgba(0,0,0,0.95)] [container-type:inline-size]">
+          <TiltCard className="relative aspect-[4/3] w-full overflow-hidden rounded-lg border border-rule shadow-[0_40px_90px_-50px_rgba(0,0,0,0.95)] sm:aspect-[16/10]">
             <Frame build={build} live={!lite && liveId === build.id} />
           </TiltCard>
         </motion.article>
