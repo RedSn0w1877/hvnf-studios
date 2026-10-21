@@ -1,0 +1,235 @@
+/*
+ * Cube marks and cube slots.
+ *
+ * Every colour falls back to its token's literal value. Tailwind only emits a
+ * theme variable when one of its utilities uses it, and these rules live
+ * outside Tailwind, so `var(--color-draft)` alone could resolve to nothing.
+ *
+ * These rules are unlayered, so they beat Tailwind utilities whatever their
+ * specificity. That is why nothing here sets display, position, size, opacity
+ * or transform on an element a caller styles (the mark's <svg>, the slot's
+ * root): `className` keeps full control of layout.
+ */
+
+/* ── CubeMark ───────────────────────────────────────────────────────────── */
+
+.mark {
+  stroke: var(--cm-line);
+  stroke-linecap: butt;
+  stroke-linejoin: miter;
+}
+
+.dark {
+  --cm-line: var(--color-line, #e6edf1);
+  --cm-draft: var(--color-draft, #6fb0cc);
+  --cm-hl: var(--color-ember, #e9a568);
+}
+
+/* On paper the light colours fail contrast, so each role has an ink twin. */
+.paper {
+  --cm-line: var(--color-paper-ink, #14120f);
+  --cm-draft: var(--color-draft-ink, #2f5f74);
+  --cm-hl: var(--color-ember-ink, #9a4512);
+}
+
+.draft,
+.redline {
+  stroke: var(--cm-draft);
+}
+
+.build,
+.lock {
+  stroke: var(--cm-line);
+}
+
+/* Hairlines stay hairlines at any size: 1px reads the same at 22px and 96px. */
+.mark path {
+  vector-effect: non-scaling-stroke;
+}
+
+.mark :global(.cm-hl) {
+  stroke: var(--cm-hl);
+}
+
+.mark :global(.cm-edge:not([data-on])) {
+  opacity: 0.25;
+}
+
+.mark [data-off] {
+  opacity: 0;
+}
+
+/* Dial and build steps fade; highlights fade when a caller toggles their opacity. */
+@media (prefers-reduced-motion: no-preference) {
+  .mark :global(.cm-edge),
+  .mark [data-tier],
+  .mark :global(.cm-hl) {
+    transition: opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+/* ── CubeSlot ───────────────────────────────────────────────────────────── */
+
+/* Hero and closing can be thrown around once the Stage is live. pan-y keeps
+   vertical swipes as native scrolling, so the drag never steals the page; a
+   sideways finger turns the cube. No selection, so a mouse drag that strays
+   over the heading never paints it blue. */
+.drag {
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :global(html[data-stage="live"]:not([data-lite])) .drag {
+    cursor: grab;
+  }
+
+  :global(html[data-stage="live"]:not([data-lite])) .drag:active {
+    cursor: grabbing;
+  }
+}
+
+.fallback {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* The gates. Live Stage: the WebGL cube is drawn here, so the SVG steps aside
+   (visibility too, so the browser stops painting it). Lite or a failed
+   context: the SVG is the cube. Lite wins a tie, because a resize into lite
+   unmounts the Stage while data-stage still says live. */
+:global(html[data-stage="live"]) .fallback {
+  opacity: 0;
+  visibility: hidden;
+  animation: none;
+}
+
+:global(html[data-lite]) .fallback,
+:global(html[data-stage="failed"]) .fallback {
+  opacity: 1;
+  visibility: visible;
+  animation: none;
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  stroke: var(--color-line, #e6edf1);
+  stroke-linecap: butt;
+  stroke-linejoin: miter;
+}
+
+/* The brace arrives in ember and cools to line white; at rest it is invisible. */
+.ember {
+  stroke: var(--color-ember, #e9a568);
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Stage still loading, or no JS at all: rather than an empty slot, the
+     static logo fades in at 2.5s. A live Stage cancels it first. */
+  .fallback {
+    animation: mark-late 0.4s linear 2.5s backwards;
+  }
+
+  /* MarkConverge: lite only, where this fallback is the show rather than a
+     stand-in. One shot, transform and opacity only. Fill is `backwards`, so
+     once it ends nothing is left holding a value or a compositor layer:
+     no standing will-change, the running animation promotes itself. */
+  :global(html[data-lite]) .layer {
+    animation-duration: 0.9s;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+    animation-fill-mode: backwards;
+  }
+
+  :global(html[data-lite]) .v {
+    animation-name: converge-v;
+  }
+
+  :global(html[data-lite]) .a {
+    animation-name: converge-a;
+    animation-delay: 90ms;
+  }
+
+  :global(html[data-lite]) .b {
+    animation-name: converge-b;
+    animation-delay: 180ms;
+  }
+
+  :global(html[data-lite]) .brace {
+    animation-name: converge-brace;
+    animation-delay: 620ms;
+  }
+
+  /* Rides in with the brace (first 70% = the brace's 900ms), then fades
+     .9 → 0 over the last ~400ms, ending near 1.9s. */
+  :global(html[data-lite]) .ember {
+    animation-name: ember-brace;
+    animation-duration: 1.28s;
+    animation-delay: 620ms;
+    animation-timing-function: linear;
+  }
+
+  /* play="view": hold until the shared observer marks the slot in view. Only
+     once lock.ts is running, so a page whose JS never arrives still shows
+     a logo. */
+  :global(html[data-lite][data-lock-ready]) .view:not([data-in]) .layer {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+@keyframes mark-late {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Each family starts offset along its own axis, as a fraction of the box. */
+@keyframes converge-v {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -5%, 0);
+  }
+}
+
+@keyframes converge-a {
+  from {
+    opacity: 0;
+    transform: translate3d(-4.3%, -2.5%, 0);
+  }
+}
+
+@keyframes converge-b {
+  from {
+    opacity: 0;
+    transform: translate3d(4.3%, -2.5%, 0);
+  }
+}
+
+@keyframes converge-brace {
+  from {
+    opacity: 0;
+    transform: translate3d(3.2%, -1.9%, 0);
+  }
+}
+
+@keyframes ember-brace {
+  0% {
+    opacity: 0;
+    transform: translate3d(3.2%, -1.9%, 0);
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  70% {
+    opacity: 0.9;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}

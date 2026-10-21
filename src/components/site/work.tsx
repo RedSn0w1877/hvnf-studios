@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { ArrowUpRight } from "lucide-react";
-import { gsap } from "@/lib/gsap";
+import { gsap, ScrollTrigger } from "@/lib/gsap";
+import { bus } from "@/lib/bus";
 import { setHeavyActive, useDeviceProfile, useMedia, usePageVisible } from "@/lib/perf";
-import { Reveal, SectionHead, SETTLE, TiltCard, WordReveal } from "./kit";
+import { CubeMark } from "./cube-mark";
+import { RegisteredHeading, SETTLE, TiltCard } from "./kit";
 
 /**
  * The work: three builds orbiting a column of particles, each rising around it
@@ -14,12 +16,17 @@ import { Reveal, SectionHead, SETTLE, TiltCard, WordReveal } from "./kit";
  * Performance contract:
  *  - exactly ONE embed exists at a time (whichever build is nearest the front);
  *    every other card shows a drawn poster. Three WebGL sites at once would
- *    stall the page.
+ *    stall the page. A card that leaves the front lets go of its iframe after a
+ *    short grace, so a visited build does not keep running off screen.
  *  - the orbit is transform and opacity only, written straight to style from a
  *    single ticker callback. No React state per frame, no layout reads beyond
  *    one rect, so the compositor does all of it.
- *  - the pillar lives in the page's one shared canvas (see stage.tsx) and stops
- *    drawing entirely once this section is off screen.
+ *  - the orbit and the pillar only tick while the track is within a tenth of a
+ *    screen of the viewport (one IntersectionObserver), and freeze while the
+ *    intake covers the page. No embed loads until the track itself has reached
+ *    the screen, so the hero at rest never pays for any of it.
+ *  - a hidden tab keeps its embed: the browser already throttles it, and
+ *    reloading the whole site on every tab switch would be the expensive part.
  *  - phones, weak CPUs, narrow windows and reduced-motion get a plain stack
  *    instead: same content, no orbit, no embeds on lite devices.
  */
@@ -125,8 +132,20 @@ function Poster({ build, mounted }: { build: Build; mounted: boolean }) {
  * fixed 1440px canvas shrinking until it is unreadable.
  */
 const PREVIEW_SCALE = 0.7;
+/**
+ * How long an embed outlives its turn at the front. Long enough that a card
+ * swinging past the front and straight back does not reload; short enough that
+ * the page is back to zero embeds (and the Stage back to full quality) soon
+ * after the orbit moves on.
+ */
+const EMBED_GRACE_MS = 1200;
 
-function Frame({ build, live }: { build: Build; live: boolean }) {
+/**
+ * `hidden` is the tab being in the background. It freezes the embed where it
+ * is: nothing new mounts, and the one already running is not let go, so
+ * switching tabs and back never reloads the live site.
+ */
+function Frame({ build, live, hidden }: { build: Build; live: boolean; hidden: boolean }) {
   const [mounted, setMounted] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [view, setView] = useState({ w: 1024, h: 640, scale: PREVIEW_SCALE });
@@ -152,10 +171,22 @@ function Frame({ build, live }: { build: Build; live: boolean }) {
   }, []);
 
   useEffect(() => {
-    if (!live) return;
+    if (!live || hidden) return;
     const id = window.setTimeout(() => setMounted(true), 300);
     return () => window.clearTimeout(id);
-  }, [live]);
+  }, [live, hidden]);
+
+  // Off the front: unmount the embed once the grace runs out. Coming back inside
+  // the grace clears the timer, so a quick pass by never reloads the site. A
+  // hidden tab holds the timer off; it starts over once the tab is back.
+  useEffect(() => {
+    if (live || !mounted || hidden) return;
+    const id = window.setTimeout(() => {
+      setMounted(false);
+      setLoaded(false);
+    }, EMBED_GRACE_MS);
+    return () => window.clearTimeout(id);
+  }, [live, mounted, hidden]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -318,8 +349,13 @@ function rgba(tint: number, a: number) {
  * Trails come from erasing the canvas a little each frame instead of clearing
  * it, so every mote smears along its own path for free. The erase is scaled by
  * frame time, otherwise trails would be twice as long at 60fps as at 120.
+ *
+ * `running` is the Orbit's gate: while the track is more than a tenth of a
+ * screen off screen the tick returns straight away, so the column costs
+ * nothing on the hero at rest, through Method and below. With the intake open
+ * it holds its last frame (bus.paused) instead of drawing behind the drawer.
  */
-function PillarCanvas() {
+function PillarCanvas({ running }: { running: RefObject<boolean> }) {
   const canvas = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -386,11 +422,25 @@ function PillarCanvas() {
     });
 
     let time = 0;
+    // True while gated off. The first frame back wipes the canvas once, so the
+    // column restarts clean instead of fading out a frozen frame of trails.
+    let parked = true;
 
     // GSAP hands the ticker elapsed seconds and delta in milliseconds. Reading
     // the first argument as milliseconds makes every delta ~0, which is exactly
     // what froze this column in place.
     const tick = (_t: number, deltaMs: number) => {
+      // Frozen, not parked: the drawer closes onto the same frame it opened on.
+      if (bus.paused) return;
+      if (!running.current) {
+        parked = true;
+        return;
+      }
+      if (parked) {
+        parked = false;
+        ctx.clearRect(0, 0, w, h);
+      }
+
       const dt = Math.min((deltaMs || 16.7) / 1000, 1 / 20);
       time += dt;
 
@@ -467,23 +517,56 @@ function PillarCanvas() {
       gsap.ticker.remove(tick);
       observer.disconnect();
     };
-  }, []);
+  }, [running]);
 
   return (
+    // h-full is not redundant with inset-y-0: a canvas is a replaced element, so
+    // without an explicit height it falls back to its intrinsic 2:1 shape and the
+    // column stopped about 410px down the stage at every window size.
     <canvas
       ref={canvas}
       aria-hidden
-      className="pointer-events-none absolute inset-y-0 left-1/2 w-[min(820px,92%)] -translate-x-1/2"
+      className="pointer-events-none absolute inset-y-0 left-1/2 h-full w-[min(820px,92%)] -translate-x-1/2"
       style={{ zIndex: PILLAR_Z }}
     />
   );
 }
 
-function Orbit({ liveId, onLive }: { liveId: string | null; onLive: (id: string | null) => void }) {
+/**
+ * No card may go live while the track's top is further down than this many
+ * screens. At page load the track starts about 1.2–1.45 screens down (one
+ * 100svh hero plus this section's header), so this keeps the first embed from
+ * loading, and the Stage from dropping to DPR 1, while the visitor is still on
+ * the hero. It goes live once the track reaches the bottom of the screen, about
+ * a screen of scrolling before the stage pins.
+ */
+const EMBED_GATE = 1;
+
+// Printer's crop marks at the corners of the pinned stage: four static 14px Ls,
+// 24px in, above every card (the nearest card peaks at PILLAR_Z + 30).
+const CROP_MARKS = [
+  "left-6 top-6 border-l border-t",
+  "right-6 top-6 border-r border-t",
+  "bottom-6 left-6 border-b border-l",
+  "bottom-6 right-6 border-b border-r",
+] as const;
+
+function Orbit({
+  liveId,
+  hidden,
+  onLive,
+}: {
+  liveId: string | null;
+  hidden: boolean;
+  onLive: (id: string | null) => void;
+}) {
   const track = useRef<HTMLDivElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const cards = useRef<(HTMLElement | null)[]>([]);
   const front = useRef<string | null>(null);
+  // Shared with the pillar: false while the track is more than a tenth of a
+  // screen away, and then both ticks return before doing anything.
+  const running = useRef(false);
 
   // Morph the card to the window: as wide as fits, narrower when the stage is
   // short so the text under the preview never has to shrink with it.
@@ -505,10 +588,12 @@ function Orbit({ liveId, onLive }: { liveId: string | null; onLive: (id: string 
     const tick = () => {
       const trackEl = track.current;
       const stageEl = stage.current;
-      if (!trackEl || !stageEl) return;
+      // The intake covers the page and nothing can scroll: no layout reads.
+      if (!running.current || bus.paused || !trackEl || !stageEl) return;
 
       const rect = trackEl.getBoundingClientRect();
       const vh = window.innerHeight;
+      const far = rect.top > vh * EMBED_GATE || rect.bottom < -vh * 0.5;
       const span = rect.height - vh;
       const p = span > 0 ? clamp01(-rect.top / span) : 0;
 
@@ -561,6 +646,10 @@ function Orbit({ liveId, onLive }: { liveId: string | null; onLive: (id: string 
         }
       }
 
+      // Cards still position while the track is approaching or leaving, but none
+      // of them may start an embed that far out.
+      if (far) bestId = null;
+
       // React only hears about the front card when it actually changes.
       if (bestId !== front.current) {
         front.current = bestId;
@@ -568,20 +657,59 @@ function Orbit({ liveId, onLive }: { liveId: string | null; onLive: (id: string 
       }
     };
 
+    // The gate. Either way it starts from "no front card": stopping hands the
+    // embed back (the Frame lets it go after its grace), and starting then places
+    // every card at once rather than a frame late, re-reporting the front card in
+    // the same batch. Its first callback arrives right after observe() and always
+    // acts, which also clears any live id the stack left behind when a resize
+    // swapped it for this orbit.
+    //
+    // A tenth of a screen of margin, not the half the spec asked for: the track
+    // starts 1.2–1.47 screens down at load, so a half-screen band had both ticks
+    // (and ~290 pillar sprites a frame) running on the idle hero. Symmetric, so
+    // scrolling back up into the pin reopens the gate before the stage shows
+    // and the pillar never pops in a frame late.
+    const trackEl = track.current;
+    let near: boolean | null = null;
+    const gate = new IntersectionObserver(
+      (entries) => {
+        const next = entries[entries.length - 1].isIntersecting;
+        if (next === near) return;
+        near = next;
+        running.current = next;
+        front.current = null;
+        onLive(null);
+        if (next) tick();
+      },
+      { rootMargin: "10% 0px" },
+    );
+    if (trackEl) gate.observe(trackEl);
+
     gsap.ticker.add(tick);
-    tick();
-    return () => gsap.ticker.remove(tick);
+    return () => {
+      gsap.ticker.remove(tick);
+      gate.disconnect();
+      running.current = false;
+    };
   }, [onLive]);
 
   return (
-    <div ref={track} className="relative h-[340vh]">
+    <div ref={track} data-orbit-track className="relative h-[340vh]">
       {/*
         Perspective sits on the stage, not on a wrapper around the cards: a
         wrapper would be its own stacking context and trap every card above the
         column. Here each card's z-index competes with the canvas directly.
       */}
       <div ref={stage} className="sticky top-0 h-screen overflow-hidden" style={{ perspective: "1150px" }}>
-        <PillarCanvas />
+        <PillarCanvas running={running} />
+        {CROP_MARKS.map((corner) => (
+          <span
+            key={corner}
+            aria-hidden
+            className={`pointer-events-none absolute h-3.5 w-3.5 border-rule-strong ${corner}`}
+            style={{ zIndex: PILLAR_Z + 40 }}
+          />
+        ))}
         {BUILDS.map((build, i) => (
           <div key={build.id} className="pointer-events-none absolute inset-0 flex items-center justify-center px-6">
               <article
@@ -593,7 +721,7 @@ function Orbit({ liveId, onLive }: { liveId: string | null; onLive: (id: string 
               >
                 <div className="overflow-hidden rounded-xl border border-rule-strong bg-carbon/95 shadow-[0_50px_120px_-60px_rgba(0,0,0,1)]">
                   <div className="relative w-full" style={{ aspectRatio: `1 / ${CARD_IMG_RATIO}` }}>
-                    <Frame build={build} live={liveId === build.id} />
+                    <Frame build={build} live={liveId === build.id} hidden={hidden} />
                   </div>
                   <div className="p-6 md:p-7">
                     <Details build={build} compact />
@@ -609,24 +737,23 @@ function Orbit({ liveId, onLive }: { liveId: string | null; onLive: (id: string 
 
 /* ---- the plain stack ---------------------------------------------------- */
 
-function Stack({ liveId, lite }: { liveId: string | null; lite: boolean }) {
-  const reduce = useReducedMotion();
+// Each build arrives on the shared axis lock (lib/lock.ts), straight up, like
+// every other block on the page. A motion whileInView here would server-render
+// the cards at opacity 0 (invisible with no JS) and give each its own observer.
+function Stack({ liveId, hidden, lite }: { liveId: string | null; hidden: boolean; lite: boolean }) {
   return (
     <div className="mt-20 flex flex-col gap-20 md:gap-28">
       {BUILDS.map((build) => (
-        <motion.article
+        <article
           key={build.id}
-          initial={reduce ? false : { opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "0px 0px -14% 0px" }}
-          transition={{ duration: 0.9, ease: SETTLE }}
+          data-lock="c"
           className="grid gap-8 border-t border-rule pt-8 md:grid-cols-[1fr_1.05fr] md:items-center md:gap-12"
         >
           <Details build={build} />
           <TiltCard className="relative aspect-[4/3] w-full overflow-hidden rounded-lg border border-rule shadow-[0_40px_90px_-50px_rgba(0,0,0,0.95)] sm:aspect-[16/10]">
-            <Frame build={build} live={!lite && liveId === build.id} />
+            <Frame build={build} live={!lite && liveId === build.id} hidden={hidden} />
           </TiltCard>
-        </motion.article>
+        </article>
       ))}
     </div>
   );
@@ -668,33 +795,54 @@ export function Work() {
     return () => observer.disconnect();
   }, [orbiting, lite, visible]);
 
+  // The orbit's 340vh track and the stack are very different heights, so every
+  // trigger below this section (and the cube director's anchors) moves when one
+  // swaps for the other. Only on a real swap: the first commit has nothing to
+  // re-measure, and the page already refreshes once its fonts are in.
+  const wasOrbiting = useRef(orbiting);
+  useEffect(() => {
+    if (wasOrbiting.current === orbiting) return;
+    wasOrbiting.current = orbiting;
+    ScrollTrigger.refresh();
+  }, [orbiting]);
+
   return (
     <section id="work" className="relative py-28 md:py-36">
       <div className="shell">
-        <SectionHead index="01" label="Selected work" />
+        {/* The cube with its centre upright marked: the column below stands in for it. */}
+        <CubeMark size={28} highlight={["centerUpright"]} />
 
-        <div className="mt-12 grid gap-8 lg:grid-cols-12 lg:items-end">
-          <h2
-            aria-label="Three builds, running live."
-            className="text-[clamp(2.1rem,5vw,3.6rem)] font-semibold leading-[1.02] tracking-[-0.03em] text-bone lg:col-span-7"
+        <div className="mt-8 grid gap-8 lg:grid-cols-12 lg:items-end">
+          <RegisteredHeading
+            as="h2"
+            trigger="view"
+            className="t-h2 font-display font-semibold text-bone"
+            wrapperClassName="lg:col-span-7"
           >
-            <WordReveal text="Three builds, running live." />
-          </h2>
-          <Reveal className="lg:col-span-5 lg:justify-self-end">
-            <p className="max-w-sm text-[15px] leading-relaxed text-ash">
-              {lite
-                ? "Each build below is live on the web. Open one and try it — the 3D and the scrolling are all real."
-                : "Keep scrolling and each one climbs past. Whichever is facing you is the real site, loaded and running right here."}
-            </p>
-          </Reveal>
+            Three builds, running live.
+          </RegisteredHeading>
+          <p
+            data-lock="c"
+            style={{ "--ld": "140ms" } as CSSProperties}
+            className="max-w-sm text-[15px] leading-relaxed text-ash lg:col-span-5 lg:justify-self-end"
+          >
+            {lite
+              ? "Each build below is live on the web. Open one and try it — the 3D and the scrolling are all real."
+              : "Keep scrolling and each one climbs past. Whichever is facing you is the real site, loaded and running right here."}
+          </p>
         </div>
       </div>
 
+      {/*
+        liveId passes through untouched while the tab is hidden: nulling it
+        tripped the Frame's grace and tore the embed down on every tab switch.
+        `hidden` freezes the Frames instead, so the one-embed rule still holds.
+      */}
       {orbiting ? (
-        <Orbit liveId={visible ? liveId : null} onLive={setLiveId} />
+        <Orbit liveId={liveId} hidden={!visible} onLive={setLiveId} />
       ) : (
         <div ref={stackRef} className="shell">
-          <Stack liveId={visible ? liveId : null} lite={lite} />
+          <Stack liveId={liveId} hidden={!visible} lite={lite} />
         </div>
       )}
     </section>

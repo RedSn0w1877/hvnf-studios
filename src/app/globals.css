@@ -1,4 +1,9 @@
-@import "tailwindcss";
+/*
+  source(".."): scan src/ only. Left to auto-detect, Tailwind walks the whole
+  repo, including the three portfolio builds checked out beside src/, and
+  ships every utility THEY use (about 7KB gz of CSS this page never matches).
+*/
+@import "tailwindcss" source("..");
 
 /*
  * HVNF Studios — design system.
@@ -6,32 +11,47 @@
  * Tailwind v4: tokens are declared here with @theme and become utilities
  * (bg-ink, text-ember, border-rule, …). There is no JS tailwind config in play.
  *
- * The look: a machinist's ledger. Warm carbon paper, hairline rules, one ember
- * accent for anything you can act on, one cool arc accent for live/system state.
+ * The look: one object under one orthographic camera. Near-black ink, line white
+ * for what is built, draft cyan for what is still being drawn, one ember for
+ * anything you can act on, and a paper surface for documents you read or fill in.
  */
 @theme {
   /* Surfaces, darkest first */
-  --color-ink: #07090d;
-  --color-carbon: #0b0e14;
-  --color-graphite: #11151d;
-  --color-slate-warm: #1a1f28;
+  --color-ink: #05080b;
+  --color-carbon: #0a0f14;
+  --color-graphite: #111820;
+  --color-slate-warm: #1a2129;
+  --color-prussian: #0b2131; /* .sky wash only */
 
   /* Lines */
-  --color-rule: rgb(255 255 255 / 0.09);
-  --color-rule-strong: rgb(255 255 255 / 0.18);
+  --color-rule: rgb(230 237 241 / 0.09);
+  --color-rule-strong: rgb(230 237 241 / 0.18);
 
-  /* Text */
-  --color-bone: #f4f1ea;
-  --color-ash: #a8b0bd;
-  --color-muted: #929dac;
+  /* Text on dark (contrast measured against ink) */
+  --color-bone: #f4f1ea; /* 17.8:1 */
+  --color-ash: #a8b0bd; /* 9.2:1 */
+  --color-muted: #8f9aa8; /* 7.0:1 */
 
-  /* Accents */
-  --color-ember: #e9a568;
+  /* The cube's colour grammar: built, being drawn, yours to act on */
+  --color-line: #e6edf1; /* built and locked beams */
+  --color-draft: #6fb0cc; /* 8.4:1 — draft beams, heading ghosts, guides. Hairlines and ghosts only, never a fill. */
+  --color-ember: #e9a568; /* 9.6:1 — the one action colour, also the redline */
   --color-ember-deep: #c9793c;
-  --color-arc: #7fd1c1;
+  --color-arc: #7fd1c1; /* Work only: pillar sprites and the Running-live dot. Nowhere else. */
+
+  /* Paper: the Care sheet and the intake drawer */
+  --color-paper: #ece6d9;
+  --color-paper-deep: #e1d9c9;
+  --color-paper-ink: #14120f; /* 15.0:1 on paper */
+  --color-paper-muted: #4b463d; /* 7.5:1 */
+  --color-ember-ink: #9a4512; /* 5.2:1 — the only orange for text or marks on paper (ember is 1.7:1 there) */
+  --color-draft-ink: #2f5f74; /* 5.6:1 */
+  --color-rule-paper: rgb(20 18 15 / 0.16);
 
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  /* Encode Sans Expanded 600: h1–h3, the nav wordmark, the mobile sheet links and the intake title. Nothing else. */
+  --font-display: var(--font-encode), var(--font-geist-sans), ui-sans-serif, sans-serif;
 
   /* One easing for the whole site: weighted, settles, never bounces. */
   --ease-settle: cubic-bezier(0.22, 1, 0.36, 1);
@@ -42,7 +62,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     scroll-behavior: smooth;
-    /* Lenis drives scrolling; this is the fallback for reduced-motion visitors. */
+    /* Lenis drives scrolling; this is the fallback for lite and reduced-motion visitors. */
   }
 
   html.lenis,
@@ -63,7 +83,6 @@
 
   body {
     isolation: isolate;
-    background: var(--color-ink);
     color: var(--color-bone);
     font-family: var(--font-sans);
     line-height: 1.6;
@@ -74,6 +93,11 @@
       to make a phone stutter.
     */
     background-color: var(--color-ink);
+    /*
+      clip, not hidden: hidden would make the body a scroll container and break
+      every position: sticky below it (the Method slot, the Work stage).
+    */
+    overflow-x: clip;
   }
 
   ::selection {
@@ -86,9 +110,16 @@
     outline-offset: 3px;
   }
 
+  /* Ember is 1.7:1 on paper; the ring has to be ink there to be seen at all. */
+  [data-surface="paper"] :focus-visible {
+    outline-color: var(--color-paper-ink);
+  }
+
+  /* The registration ghost is a span, not a heading, but must wrap exactly like one. */
   h1,
   h2,
-  h3 {
+  h3,
+  .reg-ghost {
     text-wrap: balance;
   }
 
@@ -100,37 +131,70 @@
 @layer components {
   /*
     The sky: the atmosphere every device gets, WebGL or not. One fixed, promoted
-    layer of stacked radial gradients — painted once, composited thereafter, so it
-    costs nothing per scroll frame. On capable machines the canvas renders over it.
+    layer of stacked gradients — painted once, composited thereafter, so it costs
+    nothing per scroll frame. On capable machines the cube renders over it.
   */
   .sky {
     position: fixed;
     inset: 0;
     z-index: -20;
     pointer-events: none;
-    background-color: #06080d;
+    background-color: #05080b;
     background-image:
-      radial-gradient(70% 55% at 8% -5%, rgb(33 78 82 / 0.55) 0%, transparent 60%),
-      radial-gradient(60% 45% at 95% 8%, rgb(74 48 30 / 0.45) 0%, transparent 62%),
-      radial-gradient(85% 60% at 50% 105%, rgb(24 54 58 / 0.5) 0%, transparent 65%),
-      linear-gradient(180deg, #080b12 0%, #06080d 55%, #05070b 100%);
+      radial-gradient(75% 55% at 14% -6%, rgb(11 33 49 / 0.7) 0%, transparent 62%),
+      radial-gradient(50% 38% at 94% 10%, rgb(74 48 30 / 0.28) 0%, transparent 60%),
+      linear-gradient(180deg, #071019 0%, #05080b 55%, #04060a 100%);
   }
 
-  /* Section shell: the ledger column every section is set in. */
+  /*
+    Section shell: the column every section is set in. The gutter is fluid, so it
+    is exactly 16px at 360px wide and never more than 56px; at 1920 and up the
+    column widens instead of stranding a narrow strip in the middle of the screen.
+  */
   .shell {
     width: 100%;
-    max-width: 78rem;
+    max-width: 84rem;
     margin-inline: auto;
-    padding-inline: 1.5rem;
+    padding-inline: clamp(1rem, 4vw, 3.5rem);
   }
 
-  @media (min-width: 768px) {
+  @media (min-width: 1920px) {
     .shell {
-      padding-inline: 2.5rem;
+      max-width: 100rem;
     }
   }
 
-  /* The small tracked label that opens every section. */
+  /*
+    Fluid type scale, opt-in. Size, leading and tracking only; colour and family
+    stay in the markup (pair .t-h1/.t-h2/.t-h3 with font-display).
+  */
+  .t-h1 {
+    font-size: clamp(2.1rem, 0.75rem + 3.9vw, 4.6rem);
+    line-height: 0.98;
+    letter-spacing: -0.03em;
+    max-width: 14ch;
+  }
+  .t-h2 {
+    font-size: clamp(1.8rem, 1rem + 2.6vw, 3.4rem);
+    line-height: 1.02;
+    letter-spacing: -0.025em;
+    max-width: 16ch;
+  }
+  .t-h3 {
+    font-size: clamp(1.2rem, 0.95rem + 0.9vw, 1.7rem);
+    line-height: 1.12;
+    letter-spacing: -0.012em;
+  }
+  .t-lead {
+    font-size: clamp(1.0625rem, 0.98rem + 0.3vw, 1.1875rem);
+    line-height: 1.6;
+    color: var(--color-ash);
+  }
+
+  /*
+    The small tracked label. Only the Work card internals still use it; nothing
+    new should.
+  */
   .eyebrow {
     font-family: var(--font-mono);
     font-size: 0.625rem;
@@ -139,16 +203,357 @@
     color: var(--color-muted);
   }
 
-  /* Hairline that draws itself in when its section arrives. */
-  .rule-draw {
-    transform-origin: left;
-    background: linear-gradient(90deg, var(--color-rule-strong), transparent);
+  /*
+    The Beam: the one button (kit.tsx, Magnetic). The chamfer is a clip-path on
+    the FILL span only, never on the control, so the focus ring around it is never
+    clipped. Two registration ticks sit outside the cut corners and slide 3px in
+    along the cube's A axis on hover or keyboard focus. Every hover change here is
+    transform or opacity; nothing repaints.
+  */
+  .beam {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.625rem;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    outline-offset: 4px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .beam[data-size="sm"] {
+    height: 2.5rem;
+    font-size: 0.875rem;
+  }
+  .beam[data-size="md"] {
+    height: 3rem;
+    font-size: 0.9375rem;
+  }
+  .beam[data-size="lg"] {
+    height: 3.5rem;
+    font-size: 0.9375rem;
+  }
+  .beam[data-variant="solid"][data-size="sm"] {
+    padding-inline: 1rem;
+  }
+  .beam[data-variant="solid"][data-size="md"] {
+    padding-inline: 1.5rem;
+  }
+  .beam[data-variant="solid"][data-size="lg"] {
+    padding-inline: 1.875rem;
+  }
+
+  /* Tones: ember on dark (9.6:1 ink on ember), ink on paper (bone on paper-ink). */
+  .beam[data-tone="ember"] {
+    --beam-fill: var(--color-ember);
+    --beam-text: var(--color-ink);
+    --beam-lift: rgb(255 255 255 / 0.14);
+    --beam-tick: var(--color-draft);
+    --beam-link: var(--color-bone);
+    --beam-under: var(--color-rule-strong);
+    --beam-mark: var(--color-ember);
+  }
+  .beam[data-tone="ink"] {
+    --beam-fill: var(--color-paper-ink);
+    --beam-text: var(--color-bone);
+    --beam-lift: rgb(244 241 234 / 0.1);
+    --beam-tick: var(--color-draft-ink);
+    --beam-link: var(--color-paper-ink);
+    --beam-under: var(--color-rule-paper);
+    --beam-mark: var(--color-ember-ink);
+  }
+  .beam[data-variant="solid"] {
+    color: var(--beam-text);
+  }
+  .beam[data-variant="link"] {
+    color: var(--beam-link);
+  }
+
+  .beam-fill {
+    position: absolute;
+    inset: 0;
+    background: var(--beam-fill);
+    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+  }
+  /* A flat lift on hover, faded with opacity. Flat on purpose: no sheen. */
+  .beam-fill::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--beam-lift);
+    opacity: 0;
+    transition: opacity 240ms var(--ease-settle);
+  }
+
+  .beam-tick {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    color: var(--beam-tick);
+    opacity: 0.7;
+    pointer-events: none;
+    transition:
+      transform 240ms var(--ease-settle),
+      opacity 240ms var(--ease-settle);
+  }
+  .beam-tick-tl {
+    top: -5px;
+    left: -5px;
+    border-top: 1px solid;
+    border-left: 1px solid;
+  }
+  .beam-tick-br {
+    right: -5px;
+    bottom: -5px;
+    border-right: 1px solid;
+    border-bottom: 1px solid;
+  }
+
+  /* Link variant: the underline is a hairline, and an ember one grows over it from the left. */
+  .beam-ul {
+    position: absolute;
+    inset-inline: 0;
+    bottom: -0.4375rem;
     height: 1px;
+    background: var(--beam-under);
+    pointer-events: none;
+  }
+  .beam-ul::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--beam-mark);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 420ms var(--ease-settle);
+  }
+
+  /* Keyboard focus earns the same answer as a hover, on every device. */
+  .beam:focus-visible .beam-fill::after {
+    opacity: 1;
+  }
+  .beam:focus-visible .beam-tick-tl {
+    opacity: 1;
+    transform: translate(2.6px, 1.5px);
+  }
+  .beam:focus-visible .beam-tick-br {
+    opacity: 1;
+    transform: translate(-2.6px, -1.5px);
+  }
+  .beam:focus-visible .beam-ul::after {
+    transform: scaleX(1);
+  }
+
+  @media (hover: hover) {
+    .beam:not(:disabled):hover .beam-fill::after {
+      opacity: 1;
+    }
+    .beam:not(:disabled):hover .beam-tick-tl {
+      opacity: 1;
+      transform: translate(2.6px, 1.5px);
+    }
+    .beam:not(:disabled):hover .beam-tick-br {
+      opacity: 1;
+      transform: translate(-2.6px, -1.5px);
+    }
+    .beam:not(:disabled):hover .beam-ul::after {
+      transform: scaleX(1);
+    }
+  }
+
+  /*
+    Registration (kit.tsx, RegisteredHeading): the real heading and its ghost
+    share one grid cell, so the ghost inherits the heading's exact box — margins,
+    max-width and centring included — without being measured.
+  */
+  .reg {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
-/* Anything scroll-driven is transform-only; this keeps the compositor in charge. */
+/*
+  Everything below is deliberately unlayered. Unlayered rules beat Tailwind's
+  utilities layer, which is what a hide rule or a ghost's colour override needs:
+  a text-bone on the heading must not leak into its draft-coloured ghost.
+
+  Entrances travel along the cube's three iso axes: a arrives from the lower
+  left, b from the upper right, c straight up from below. Static offsets use 2D
+  translate so a waiting element is never promoted to its own layer; only a
+  running animation is.
+*/
+
+@keyframes lock-a {
+  from {
+    opacity: 0;
+    transform: translate(-12px, 7px);
+  }
+}
+@keyframes lock-b {
+  from {
+    opacity: 0;
+    transform: translate(12px, -7px);
+  }
+}
+@keyframes lock-c {
+  from {
+    opacity: 0;
+    transform: translate(0, 10px);
+  }
+}
+/* Below 768px every offset travels 70% as far. */
+@keyframes lock-a-sm {
+  from {
+    opacity: 0;
+    transform: translate(-8.4px, 4.9px);
+  }
+}
+@keyframes lock-b-sm {
+  from {
+    opacity: 0;
+    transform: translate(8.4px, -4.9px);
+  }
+}
+@keyframes lock-c-sm {
+  from {
+    opacity: 0;
+    transform: translate(0, 7px);
+  }
+}
+
+/* Two printing plates coming into register: the ghost converges on the text and fades out. */
+@keyframes reg-converge {
+  from {
+    opacity: 0.55;
+    transform: translate(-8.66px, 5px);
+  }
+  to {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+/*
+  The lock-* keyframes have no `to`: each animates back to the element's own
+  resting opacity and transform, and fill-mode is backwards (hold the start pose
+  through --ld), not both. Nothing lingers after the 640ms, and the element's
+  `transition` is never touched, so a Method step that dims itself to .4 or a row
+  with its own hover transitions keeps both. Keyframes rather than transitions
+  also mean an element marked data-instant simply never animates.
+
+  Do not combine data-lock or .load-* with JS-driven transforms or another
+  animation on the SAME element (inline styles win over the hide rule, and two
+  animations fight over the shorthand); wrap the content instead.
+*/
+@media (prefers-reduced-motion: no-preference) {
+  /* Load entrances: pure CSS from first paint, no JS, never waiting on hydration. */
+  .load-a {
+    animation: lock-a 640ms var(--ease-settle) var(--ld, 0ms) backwards;
+  }
+  .load-b {
+    animation: lock-b 640ms var(--ease-settle) var(--ld, 0ms) backwards;
+  }
+  .load-c {
+    animation: lock-c 640ms var(--ease-settle) var(--ld, 0ms) backwards;
+  }
+
+  /* Axis lock: hidden only once lock.ts has sorted the page (data-lock-ready). */
+  [data-lock="a"] {
+    --lx: -12px;
+    --ly: 7px;
+  }
+  [data-lock="b"] {
+    --lx: 12px;
+    --ly: -7px;
+  }
+  [data-lock="c"] {
+    --lx: 0px;
+    --ly: 10px;
+  }
+  html[data-lock-ready] [data-lock]:not([data-lock="none"]):not([data-in]) {
+    opacity: 0;
+    transform: translate(var(--lx, 0px), var(--ly, 0px));
+  }
+  html[data-lock-ready] [data-lock="a"][data-in]:not([data-instant]) {
+    animation: lock-a 640ms var(--ease-settle) var(--ld, 0ms) backwards;
+  }
+  html[data-lock-ready] [data-lock="b"][data-in]:not([data-instant]) {
+    animation: lock-b 640ms var(--ease-settle) var(--ld, 0ms) backwards;
+  }
+  html[data-lock-ready] [data-lock="c"][data-in]:not([data-instant]) {
+    animation: lock-c 640ms var(--ease-settle) var(--ld, 0ms) backwards;
+  }
+
+  @media (max-width: 767px) {
+    [data-lock="a"] {
+      --lx: -8.4px;
+      --ly: 4.9px;
+    }
+    [data-lock="b"] {
+      --lx: 8.4px;
+      --ly: -4.9px;
+    }
+    [data-lock="c"] {
+      --ly: 7px;
+    }
+    .load-a,
+    html[data-lock-ready] [data-lock="a"][data-in]:not([data-instant]) {
+      animation-name: lock-a-sm;
+    }
+    .load-b,
+    html[data-lock-ready] [data-lock="b"][data-in]:not([data-instant]) {
+      animation-name: lock-b-sm;
+    }
+    .load-c,
+    html[data-lock-ready] [data-lock="c"][data-in]:not([data-instant]) {
+      animation-name: lock-c-sm;
+    }
+  }
+
+  /*
+    Registration. load: 120ms after first paint, CSS only (the h1). view: when the
+    wrapper (data-lock="b") arrives, in step with its own --ld.
+  */
+  .reg[data-reg="load"] > .reg-ghost {
+    animation: reg-converge 720ms var(--ease-settle) 120ms backwards;
+  }
+  .reg[data-reg="view"][data-in] > .reg-ghost {
+    animation: reg-converge 720ms var(--ease-settle) calc(var(--ld, 0ms) + 120ms) backwards;
+  }
+}
+
+/* Both copies in one cell. Unlayered so a stray col-span on the heading cannot split them. */
+.reg > * {
+  grid-area: 1 / 1;
+}
+
+/* The ghost rests invisible, so with no JS (or before a view trigger) it is simply not there. */
+.reg-ghost {
+  opacity: 0;
+  color: var(--color-draft);
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.reg-ghost * {
+  color: inherit;
+}
+.reg[data-tone="paper"] > .reg-ghost,
+[data-surface="paper"] .reg-ghost {
+  color: var(--color-draft-ink);
+}
+
+/* Reduced motion: no ghosts, no offsets (those rules only exist under no-preference), and every
+   transition or animation that remains resolves at once. */
 @media (prefers-reduced-motion: reduce) {
+  .reg-ghost {
+    display: none;
+  }
+
   *,
   *::before,
   *::after {

@@ -1,12 +1,20 @@
 # HVNF Studios: agent handoff
 
-Last updated 2026-09-20. Read this first. Long background: `HVNF-HANDBOOK.md` (frozen snapshot, do not edit; its shell/git notes are out of date, this file wins). Delete this file when the open items are done.
+Last updated 2026-10-21. Read this first.
+
+## Studio homepage redesign ("One True Angle", 2026-10-21)
+
+- The brand mark (`brand/hvnf-blueprint/`, untracked, the user's file) is an impossible cube. `src/lib/cube.ts` holds its 39 segments lifted onto a 6×6×6 lattice (reprojects onto the SVG with 0 mismatches). `cube-mark.tsx` draws it as SVG (marks, phone fallback); `stage.tsx` + `cube-director.ts` + `cube-shader.ts` + `cube-3d.ts` draw it in the single WebGL Stage, posed as a pure function of scroll.
+- The Stage uses `frameloop="never"` and renders only when the cube's pose changes: 0 frames idle on the hero, through the Work pin and behind Care. Pass `advance()` **seconds** (gsap ticker time), never ms.
+- Entrances are CSS (`data-lock` + `src/lib/lock.ts`, one shared IntersectionObserver); headings use `RegisteredHeading`; buttons are the `Magnetic`/Beam in `kit.tsx`. Care and the intake are the "paper" surface (`data-surface="paper"`).
+- Live hosting: Vercel project `hvnf-studios` → **hvnfstudios.com** (apex 308s to www), auto-deploys from `main`; GitHub Pages copy at `/hvnf-studios`. DNS lives at Namecheap; leave its MX/TXT (Google mail) alone. `redsn0w.xyz` is the user's personal domain: never touch it.
+- Measured only in headless Chrome on SwiftShader (cadence, CPU, counts), not real-GPU frame rate. Test harnesses from the build live in the session scratchpad, not the repo. Long background: `HVNF-HANDBOOK.md` (frozen snapshot, do not edit; its shell/git notes are out of date, this file wins). Delete this file when the open items are done.
 
 ## State
 
 - **Shell works again.** The old EPERM was a stray `C:\Users\HoaVo` folder the app used for temp files and could not write to. Fixed by creating `C:\Users\HoaVo\AppData\Local\Temp\claude` and granting the user access (admin `icacls`). If it comes back, that folder is the place to look.
 - **Verified 2026-09-20:** `tsc --noEmit` clean and `npm run build` passes in the root, `kroma-labs`, `apex-dynamics` and `aetheria-botanicals`. ESLint is clean in the three demos. The root has **no ESLint config or dependency** (nothing to lint yet; do not let `npx eslint` auto-install one).
-- **Repos:** the three demos are git submodules (`.gitmodules` points at `github.com/RedSn0w1877/<name>`), all on branch `improve/site-polish`. Commit inside each demo first, then commit the updated pointers in the root. **Nothing has been pushed.**
+- **Repos:** the three demos are git submodules (`.gitmodules` points at `github.com/RedSn0w1877/<name>`), all on branch `improve/site-polish`. Commit inside each demo first, then commit the updated pointers in the root. Pushing `main` deploys (GitHub Pages + Vercel).
 - Preview servers: kroma 3000, apex 3001, aetheria 3002, root 3003 (`.claude/launch.json`).
 
 ## Measuring frame rate (read this before trying)
