@@ -278,27 +278,31 @@ function Details({ build, compact }: { build: Build; compact?: boolean }) {
  * empty screen at one end or the other.
  */
 const LEAD = 0.3;
-const SPAN = 1.86;
-/** Spacing between cards, in the same units. Below ~0.7 they overlap on screen. */
-const GAP = 0.62;
+const SPAN = 1.42;
+/** Spacing between cards, in the same units. A third of a turn: the three cards sit
+ *  evenly round the column, so one is always on the near side. Their different
+ *  heights keep them from overlapping. */
+const GAP = 0.36;
 /** A little over half a turn: enough to read as an orbit, not so much that a
  *  card spends the whole time facing away. */
 /** A full turn: each card goes all the way round the column, passing behind it. */
 const SWEEP = Math.PI * 2;
 /** -1 brings cards up the right-hand side first. */
 const DIRECTION = -1;
+/** Above 1, cards linger near the front of the orbit. */
+const DWELL = 1.7;
 /** Widest swing, and how much of the stage it may use. A fixed radius either
  *  buries the orbit on a small window or wastes a big one. */
-const RADIUS_MAX = 340;
-const RADIUS_RATIO = 0.26;
+const RADIUS_MAX = 600;
+const RADIUS_RATIO = 0.4;
 const RISE = 0.82;
 /**
- * How much of the orbit angle the card face actually turns through. At 1 it is a
- * true carousel panel, which means it goes edge-on at the sides and shows its
- * mirrored back at the rear. At 0.4 the peak turn is about 72°, so it visibly
- * rotates around the column and catches the light without ever reversing.
+ * How much of the orbit angle the card face turns through. At 1 each card is a
+ * true panel on a cylinder: it faces outward from the column wherever it is, goes
+ * edge-on at the sides and shows its back at the rear. Anything less is a card
+ * that slides sideways while squashing, which is what this used to look like.
  */
-const CARD_TURN = 0.4;
+const CARD_TURN = 1;
 /** Stacking order of the column itself. Cards on the near half of the orbit sit
  *  above this, cards on the far half below, which is what actually puts them
  *  behind the particles rather than faking it with opacity. */
@@ -618,12 +622,16 @@ function Orbit({
           continue;
         }
 
-        const a = (t - 0.5) * SWEEP * DIRECTION;
+        // Eased so the angle changes slowly near the front and quickly through the
+        // sides and back: each card dwells facing you long enough to read, then
+        // swings round.
+        const u = (t - 0.5) * 2;
+        const a = Math.sign(u) * Math.pow(Math.abs(u), DWELL) * (SWEEP / 2) * DIRECTION;
         const face = Math.cos(a);
         const edge = smooth(0, 0.16, t) * (1 - smooth(0.84, 1, t));
-        // The far half stays readable — the column itself does the hiding now, so
-        // it does not also need to be faded most of the way out.
-        const opacity = edge * (0.58 + 0.42 * (0.5 + 0.5 * face));
+        // A card past the sides is showing its back, so it dims right down instead
+        // of presenting mirrored text; the front half stays fully readable.
+        const opacity = edge * (0.2 + 0.8 * smooth(-0.35, 0.45, face));
 
         const lift = (0.5 - t) * RISE * stageH;
         el.style.visibility = opacity < 0.012 ? "hidden" : "visible";
@@ -632,7 +640,7 @@ function Orbit({
         el.style.transform =
           `translate3d(${(Math.sin(a) * radius).toFixed(2)}px, ${lift.toFixed(2)}px, ${((face - 1) * radius).toFixed(2)}px)` +
           ` rotateY(${(a * CARD_TURN).toFixed(4)}rad)` +
-          ` rotateX(${(-(lift / stageH) * 9).toFixed(2)}deg)` +
+          ` rotateX(${(-(lift / stageH) * 5).toFixed(2)}deg)` +
           ` scale(${fit.toFixed(3)})`;
         el.style.opacity = opacity.toFixed(3);
         // Near half in front of the column, far half behind it.
@@ -716,7 +724,7 @@ function Orbit({
                 ref={(el) => {
                   cards.current[i] = el;
                 }}
-                style={{ visibility: "hidden", willChange: "transform, opacity" }}
+                style={{ visibility: "hidden", willChange: "transform, opacity", backfaceVisibility: "hidden" }}
                 className="w-[var(--card-w,31rem)]"
               >
                 <div className="overflow-hidden rounded-xl border border-rule-strong bg-carbon/95 shadow-[0_50px_120px_-60px_rgba(0,0,0,1)]">
