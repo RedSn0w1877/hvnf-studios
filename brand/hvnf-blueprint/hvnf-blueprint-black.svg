@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">HVNF Studios — Wireframe Blueprint</title>
+  <desc id="desc">An isometric open-frame cube with a paradoxical diagonal beam. White linework only: 1.5-unit outer contour, 1-unit interior lines, and 2-unit visible clearance at the interrupted front uprights. Master viewBox: 256 by 256.</desc>
+  <metadata>© HVNF Studios — do not redistribute</metadata>
+  <rect width="256" height="256" fill="#000000"/>
+  <g stroke="#FFFFFF" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4">
+    <path stroke-width="1" d="M114.14359 72 114.14359 104
+      M114.14359 136 114.14359 148.82457
+      M114.14359 171.17543 114.14359 200
+      M128 48 128 112
+      M128 128 128 140.82457
+      M128 163.17543 128 224
+      M141.85641 72 141.85641 104
+      M141.85641 155.17543 141.85641 200
+      M72.57437 144 100.28719 128
+      M128 112 183.42563 80
+      M58.71797 168 114.14359 136
+      M128 128 211.13844 80
+      M86.43078 88 128 64
+      M72.57437 80 128 48
+      M58.71797 104 58.71797 168
+      M72.57437 112 72.57437 160
+      M44.86156 80 128 128
+      M155.71281 144 197.28203 168
+      M72.57437 80 128 112
+      M169.56922 136 183.42563 144
+      M58.71797 104 114.14359 136
+      M141.85641 152 169.56922 168
+      M128 64 169.56922 88
+      M128 48 183.42563 80
+      M72.57437 160 86.43078 168
+      M100.28719 176 114.14359 184
+      M58.71797 168 114.14359 200
+      M183.42563 112 183.42563 160
+      M197.28203 104 197.28203 168
+      M141.85641 184 183.42563 160
+      M141.85641 200 197.28203 168
+      M72.57437 176 197.28203 104
+      M86.43078 184 183.42563 128"/>
+    <path stroke-width="1.5" d="M128 32 211.13844 80 211.13844 176 128 224 44.86156 176 44.86156 80Z"/>
+  </g>
+</svg>
