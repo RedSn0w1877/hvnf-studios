@@ -49,8 +49,8 @@ export function Closing({ onStart }: { onStart: () => void }) {
               trigger="view"
               className="t-h2 mx-auto max-w-[18ch] font-display font-semibold text-bone min-[90rem]:mx-0"
             >
-              <span className="block">Tell us about the business.</span>{" "}
-              <span className="block text-ash">We will build the first version.</span>
+              <span className="block text-ash">Good work deserves</span>{" "}
+              <span className="block">a good website.</span>
             </RegisteredHeading>
 
             <div
