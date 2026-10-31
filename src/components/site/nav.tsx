@@ -3,12 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion, type Variants } from "motion/react";
 import { Menu, X } from "lucide-react";
-import { gsap, ScrollTrigger, useGSAP } from "@/lib/gsap";
+import { ScrollTrigger, useGSAP } from "@/lib/gsap";
 import { CubeMark } from "./cube-mark";
 import { Beam, SETTLE } from "./kit";
 
 const LINKS = [
-  { href: "#work", label: "Work" },
+  { href: "#work", label: "Examples" },
   { href: "#method", label: "How it works" },
   { href: "#care", label: "What you get" },
 ] as const;
@@ -34,15 +34,14 @@ const sheetItem: Variants = {
 };
 
 /**
- * The header. A hairline thread along its bottom edge tracks how far down the
- * page you are; it steps out of the way when you scroll down and returns the
- * moment you scroll up. No backdrop blur: a frosted bar over a live WebGL
- * canvas is an expensive way to make text harder to read.
+ * The header. It steps out of the way when you scroll down and returns the
+ * moment you scroll up; the cube mark in the corner is the only progress it
+ * shows. No backdrop blur: a frosted bar over a live WebGL canvas is an
+ * expensive way to make text harder to read.
  *
  * Nothing here listens to scroll. Two ScrollTriggers ride the page's one clock
- * (Lenis, then ScrollTrigger, on gsap's ticker): the thread is a quickSetter
- * write per frame, and React only hears about it when the bar should hide,
- * show, or lift.
+ * (Lenis, then ScrollTrigger, on gsap's ticker), and React only hears about
+ * them when the bar should hide, show, or lift.
  */
 export function Nav({ onStart }: { onStart: () => void }) {
   const [open, setOpen] = useState(false);
@@ -51,7 +50,6 @@ export function Nav({ onStart }: { onStart: () => void }) {
   const [active, setActive] = useState<string>("");
   const [reached, setReached] = useState(1);
   const header = useRef<HTMLElement>(null);
-  const thread = useRef<HTMLDivElement>(null);
   const menuButton = useRef<HTMLButtonElement>(null);
   // What the bar is doing right now, readable from the trigger without waiting
   // on a render, so state is only set when the answer actually changes.
@@ -60,10 +58,6 @@ export function Nav({ onStart }: { onStart: () => void }) {
 
   useGSAP(
     () => {
-      const line = thread.current;
-      if (!line) return;
-      const setThread = gsap.quickSetter(line, "scaleX") as (progress: number) => void;
-
       // Direction comes from the scroll position itself, not from progress. A
       // refresh (the display face swapping in, Work's orbit becoming a stack)
       // moves progress while nobody scrolls, and so does this trigger's own
@@ -73,7 +67,6 @@ export function Nav({ onStart }: { onStart: () => void }) {
         start: 0,
         end: "max",
         onUpdate(self) {
-          setThread(self.progress);
           const y = self.scroll();
           const moved = lastY === null ? 0 : y - lastY;
           lastY = y;
@@ -195,26 +188,24 @@ export function Nav({ onStart }: { onStart: () => void }) {
         <nav aria-label="Sections" className="hidden items-center gap-1 md:flex">
           {LINKS.map((link) => {
             const on = active === link.href;
+            // The current section gets a plain, static underline as well as the
+            // brighter text: bone against muted is only 2.5:1, too close to be
+            // the only cue. A text decoration, so nothing animates or moves.
             return (
               <a
                 key={link.href}
                 href={link.href}
                 aria-current={on ? "true" : undefined}
-                className={`relative px-4 py-2 text-sm font-medium ${on ? "text-bone" : "text-muted hover:text-ash"}`}
+                className={`px-4 py-2 text-sm font-medium ${
+                  on ? "text-bone underline decoration-1 underline-offset-[10px]" : "text-muted hover:text-ash"
+                }`}
               >
                 {link.label}
-                {on ? (
-                  <motion.span
-                    layoutId="nav-active"
-                    className="absolute inset-x-4 -bottom-px h-0.5 bg-ember"
-                    transition={reduce ? { duration: 0 } : { duration: 0.5, ease: SETTLE }}
-                  />
-                ) : null}
               </a>
             );
           })}
           <Beam onClick={onStart} size="sm" className="ml-4">
-            Start a project
+            Ask for a preview
           </Beam>
         </nav>
 
@@ -231,18 +222,6 @@ export function Nav({ onStart }: { onStart: () => void }) {
         </button>
       </div>
 
-      {/*
-        Progress thread: 1px of ember, scaled by the trigger above. It starts at
-        zero in the server HTML; React never rewrites this style after gsap
-        takes it over, because the prop itself never changes.
-      */}
-      <div
-        ref={thread}
-        aria-hidden
-        className="h-px origin-left bg-ember motion-reduce:hidden"
-        style={{ transform: "scaleX(0)" }}
-      />
-
       <AnimatePresence>
         {open ? (
           <motion.div
@@ -251,7 +230,9 @@ export function Nav({ onStart }: { onStart: () => void }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3, ease: SETTLE }}
-            className="border-t border-rule bg-carbon md:hidden"
+            // Down to the bottom of the screen: a short sheet left the hero's own
+            // "Ask for a preview" sitting right under this one, like a duplicate.
+            className="min-h-[calc(100dvh-4rem)] border-t border-rule bg-carbon md:hidden"
           >
             <motion.div
               variants={sheetList}
@@ -273,12 +254,16 @@ export function Nav({ onStart }: { onStart: () => void }) {
               <motion.div variants={sheetItem} className="mt-8">
                 <Beam
                   onClick={() => {
+                    // This button goes away with the sheet, so focus moves to the
+                    // menu button first: the drawer remembers that as its opener
+                    // and hands focus back to it on close, not to <body>.
+                    menuButton.current?.focus({ preventScroll: true });
                     setOpen(false);
                     onStart();
                   }}
                   className="w-full"
                 >
-                  Start a project
+                  Ask for a preview
                 </Beam>
               </motion.div>
             </motion.div>

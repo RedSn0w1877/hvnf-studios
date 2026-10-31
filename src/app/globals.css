@@ -21,7 +21,6 @@
   --color-carbon: #0a0f14;
   --color-graphite: #111820;
   --color-slate-warm: #1a2129;
-  --color-prussian: #0b2131; /* .sky wash only */
 
   /* Lines */
   --color-rule: rgb(230 237 241 / 0.09);
@@ -34,10 +33,9 @@
 
   /* The cube's colour grammar: built, being drawn, yours to act on */
   --color-line: #e6edf1; /* built and locked beams */
-  --color-draft: #6fb0cc; /* 8.4:1 — draft beams, heading ghosts, guides. Hairlines and ghosts only, never a fill. */
+  --color-draft: #6fb0cc; /* 8.4:1 — draft beams and guides. Hairlines and labels only, never a fill. */
   --color-ember: #e9a568; /* 9.6:1 — the one action colour, also the redline */
   --color-ember-deep: #c9793c;
-  --color-arc: #7fd1c1; /* Work only: pillar sprites and the Running-live dot. Nowhere else. */
 
   /* Paper: the Care sheet and the intake drawer */
   --color-paper: #ece6d9;
@@ -48,10 +46,12 @@
   --color-draft-ink: #2f5f74; /* 5.6:1 */
   --color-rule-paper: rgb(20 18 15 / 0.16);
 
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  /* Encode Sans 400/500: everything you read. There is no monospace on the site;
+     font-mono resolves to the body face so a stray utility can't bring one back. */
+  --font-sans: var(--font-text), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-sans);
   /* Encode Sans Expanded 600: h1–h3, the nav wordmark, the mobile sheet links and the intake title. Nothing else. */
-  --font-display: var(--font-encode), var(--font-geist-sans), ui-sans-serif, sans-serif;
+  --font-display: var(--font-encode), var(--font-text), ui-sans-serif, sans-serif;
 
   /* One easing for the whole site: weighted, settles, never bounces. */
   --ease-settle: cubic-bezier(0.22, 1, 0.36, 1);
@@ -115,11 +115,9 @@
     outline-color: var(--color-paper-ink);
   }
 
-  /* The registration ghost is a span, not a heading, but must wrap exactly like one. */
   h1,
   h2,
-  h3,
-  .reg-ghost {
+  h3 {
     text-wrap: balance;
   }
 
@@ -130,9 +128,10 @@
 
 @layer components {
   /*
-    The sky: the atmosphere every device gets, WebGL or not. One fixed, promoted
-    layer of stacked gradients — painted once, composited thereafter, so it costs
-    nothing per scroll frame. On capable machines the cube renders over it.
+    The sky: the backdrop every device gets, WebGL or not. One fixed, promoted
+    layer with a single vertical gradient (slightly lighter at the top, no glows),
+    painted once and composited thereafter, so it costs nothing per scroll frame.
+    On capable machines the cube renders over it.
   */
   .sky {
     position: fixed;
@@ -140,10 +139,7 @@
     z-index: -20;
     pointer-events: none;
     background-color: #05080b;
-    background-image:
-      radial-gradient(75% 55% at 14% -6%, rgb(11 33 49 / 0.7) 0%, transparent 62%),
-      radial-gradient(50% 38% at 94% 10%, rgb(74 48 30 / 0.28) 0%, transparent 60%),
-      linear-gradient(180deg, #071019 0%, #05080b 55%, #04060a 100%);
+    background-image: linear-gradient(180deg, #071019 0%, #05080b 55%, #04060a 100%);
   }
 
   /*
@@ -166,7 +162,8 @@
 
   /*
     Fluid type scale, opt-in. Size, leading and tracking only; colour and family
-    stay in the markup (pair .t-h1/.t-h2/.t-h3 with font-display).
+    stay in the markup (pair .t-h1/.t-h2/.t-h3 with font-display). Section h2s
+    stay quieter (28–40px) so the h1 and the closing line are the two loud ones.
   */
   .t-h1 {
     font-size: clamp(2.1rem, 0.75rem + 3.9vw, 4.6rem);
@@ -175,7 +172,7 @@
     max-width: 14ch;
   }
   .t-h2 {
-    font-size: clamp(1.8rem, 1rem + 2.6vw, 3.4rem);
+    font-size: clamp(1.75rem, 1.05rem + 1.7vw, 2.5rem);
     line-height: 1.02;
     letter-spacing: -0.025em;
     max-width: 16ch;
@@ -192,23 +189,9 @@
   }
 
   /*
-    The small tracked label. Only the Work card internals still use it; nothing
-    new should.
-  */
-  .eyebrow {
-    font-family: var(--font-mono);
-    font-size: 0.625rem;
-    letter-spacing: 0.32em;
-    text-transform: uppercase;
-    color: var(--color-muted);
-  }
-
-  /*
     The Beam: the one button (kit.tsx, Magnetic). The chamfer is a clip-path on
     the FILL span only, never on the control, so the focus ring around it is never
-    clipped. Two registration ticks sit outside the cut corners and slide 3px in
-    along the cube's A axis on hover or keyboard focus. Every hover change here is
-    transform or opacity; nothing repaints.
+    clipped. Every hover change here is transform or opacity; nothing repaints.
   */
   .beam {
     position: relative;
@@ -252,7 +235,6 @@
     --beam-fill: var(--color-ember);
     --beam-text: var(--color-ink);
     --beam-lift: rgb(255 255 255 / 0.14);
-    --beam-tick: var(--color-draft);
     --beam-link: var(--color-bone);
     --beam-under: var(--color-rule-strong);
     --beam-mark: var(--color-ember);
@@ -261,7 +243,6 @@
     --beam-fill: var(--color-paper-ink);
     --beam-text: var(--color-bone);
     --beam-lift: rgb(244 241 234 / 0.1);
-    --beam-tick: var(--color-draft-ink);
     --beam-link: var(--color-paper-ink);
     --beam-under: var(--color-rule-paper);
     --beam-mark: var(--color-ember-ink);
@@ -289,30 +270,6 @@
     transition: opacity 240ms var(--ease-settle);
   }
 
-  .beam-tick {
-    position: absolute;
-    width: 8px;
-    height: 8px;
-    color: var(--beam-tick);
-    opacity: 0.7;
-    pointer-events: none;
-    transition:
-      transform 240ms var(--ease-settle),
-      opacity 240ms var(--ease-settle);
-  }
-  .beam-tick-tl {
-    top: -5px;
-    left: -5px;
-    border-top: 1px solid;
-    border-left: 1px solid;
-  }
-  .beam-tick-br {
-    right: -5px;
-    bottom: -5px;
-    border-right: 1px solid;
-    border-bottom: 1px solid;
-  }
-
   /* Link variant: the underline is a hairline, and an ember one grows over it from the left. */
   .beam-ul {
     position: absolute;
@@ -336,14 +293,6 @@
   .beam:focus-visible .beam-fill::after {
     opacity: 1;
   }
-  .beam:focus-visible .beam-tick-tl {
-    opacity: 1;
-    transform: translate(2.6px, 1.5px);
-  }
-  .beam:focus-visible .beam-tick-br {
-    opacity: 1;
-    transform: translate(-2.6px, -1.5px);
-  }
   .beam:focus-visible .beam-ul::after {
     transform: scaleX(1);
   }
@@ -352,34 +301,16 @@
     .beam:not(:disabled):hover .beam-fill::after {
       opacity: 1;
     }
-    .beam:not(:disabled):hover .beam-tick-tl {
-      opacity: 1;
-      transform: translate(2.6px, 1.5px);
-    }
-    .beam:not(:disabled):hover .beam-tick-br {
-      opacity: 1;
-      transform: translate(-2.6px, -1.5px);
-    }
     .beam:not(:disabled):hover .beam-ul::after {
       transform: scaleX(1);
     }
-  }
-
-  /*
-    Registration (kit.tsx, RegisteredHeading): the real heading and its ghost
-    share one grid cell, so the ghost inherits the heading's exact box — margins,
-    max-width and centring included — without being measured.
-  */
-  .reg {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
   }
 }
 
 /*
   Everything below is deliberately unlayered. Unlayered rules beat Tailwind's
-  utilities layer, which is what a hide rule or a ghost's colour override needs:
-  a text-bone on the heading must not leak into its draft-coloured ghost.
+  utilities layer, which is what a hide rule needs: an entering element's own
+  opacity or translate utilities must not show it early.
 
   Entrances travel along the cube's three iso axes: a arrives from the lower
   left, b from the upper right, c straight up from below. Static offsets use 2D
@@ -422,18 +353,6 @@
   from {
     opacity: 0;
     transform: translate(0, 7px);
-  }
-}
-
-/* Two printing plates coming into register: the ghost converges on the text and fades out. */
-@keyframes reg-converge {
-  from {
-    opacity: 0.55;
-    transform: translate(-8.66px, 5px);
-  }
-  to {
-    opacity: 0;
-    transform: none;
   }
 }
 
@@ -513,47 +432,11 @@
       animation-name: lock-c-sm;
     }
   }
-
-  /*
-    Registration. load: 120ms after first paint, CSS only (the h1). view: when the
-    wrapper (data-lock="b") arrives, in step with its own --ld.
-  */
-  .reg[data-reg="load"] > .reg-ghost {
-    animation: reg-converge 720ms var(--ease-settle) 120ms backwards;
-  }
-  .reg[data-reg="view"][data-in] > .reg-ghost {
-    animation: reg-converge 720ms var(--ease-settle) calc(var(--ld, 0ms) + 120ms) backwards;
-  }
 }
 
-/* Both copies in one cell. Unlayered so a stray col-span on the heading cannot split them. */
-.reg > * {
-  grid-area: 1 / 1;
-}
-
-/* The ghost rests invisible, so with no JS (or before a view trigger) it is simply not there. */
-.reg-ghost {
-  opacity: 0;
-  color: var(--color-draft);
-  pointer-events: none;
-  user-select: none;
-  -webkit-user-select: none;
-}
-.reg-ghost * {
-  color: inherit;
-}
-.reg[data-tone="paper"] > .reg-ghost,
-[data-surface="paper"] .reg-ghost {
-  color: var(--color-draft-ink);
-}
-
-/* Reduced motion: no ghosts, no offsets (those rules only exist under no-preference), and every
+/* Reduced motion: no offsets (those rules only exist under no-preference), and every
    transition or animation that remains resolves at once. */
 @media (prefers-reduced-motion: reduce) {
-  .reg-ghost {
-    display: none;
-  }
-
   *,
   *::before,
   *::after {

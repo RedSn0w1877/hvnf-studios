@@ -1,10 +1,15 @@
 import type { NextConfig } from 'next';
 
+// GitHub Pages serves this repo under /hvnf-studios/; Vercel serves it at the
+// root of its own domain. Vercel sets VERCEL=1 during its builds.
+const basePath = process.env.NODE_ENV === 'production' && !process.env.VERCEL ? '/hvnf-studios' : '';
+
 const config: NextConfig = {
   output: 'export',
-  // GitHub Pages serves this repo under /hvnf-studios/; Vercel serves it at the
-  // root of its own domain. Vercel sets VERCEL=1 during its builds.
-  basePath: process.env.NODE_ENV === 'production' && !process.env.VERCEL ? '/hvnf-studios' : '',
+  basePath,
+  // The same prefix, inlined at build time, for the one link that can't use
+  // next/link: the 404's way home (see app/not-found.tsx).
+  env: { NEXT_PUBLIC_BASE_PATH: basePath },
   trailingSlash: true,
   reactStrictMode: true,
 

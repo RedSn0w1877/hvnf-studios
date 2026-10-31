@@ -24,15 +24,15 @@ import { IsoRhombus, Magnetic, SETTLE } from "./kit";
 
 const KINDS = [
   { id: "new", label: "A new site", note: "Nothing there yet, or starting over" },
-  { id: "replace", label: "Replace what we have", note: "It is slow, dated, or hard to change" },
-  { id: "booking", label: "Take bookings or calls", note: "Turn visitors into actual appointments" },
-  { id: "care", label: "Look after our site", note: "Hosting, updates and a monthly check" },
+  { id: "replace", label: "Replace what we have", note: "It’s slow or a pain to update" },
+  { id: "booking", label: "Take bookings or calls", note: "Online booking, or an easy way for people to call" },
+  { id: "care", label: "Look after our site", note: "We host it and make small changes for you" },
 ] as const;
 
 const TIMING = [
   { id: "soon", label: "As soon as you can" },
   { id: "month", label: "Within a month or two" },
-  { id: "looking", label: "Just weighing it up" },
+  { id: "looking", label: "Just looking for now" },
 ] as const;
 
 type Details = { name: string; business: string; email: string; current: string; notes: string };
@@ -62,7 +62,7 @@ function tabStops(root: HTMLElement) {
 function validate(details: Details) {
   const errors: Partial<Record<keyof Details, string>> = {};
   if (details.name.trim().length < 2) errors.name = "Please add your name.";
-  if (details.business.trim().length < 2) errors.business = "Please add the business name.";
+  if (details.business.trim().length < 2) errors.business = "Please add your business name.";
   // Deliberately loose: a strict pattern rejects real addresses more often than it saves anyone.
   if (!/^\S+@\S+\.\S+$/.test(details.email.trim())) errors.email = "Please add an email we can reply to.";
   return errors;
@@ -148,8 +148,8 @@ export function Intake({ open, onClose }: { open: boolean; onClose: () => void }
 
   // A step change disables or swaps out the button that was pressed, which
   // would drop focus to <body>. Catch it on the step line straight away (it
-  // also announces "Step 2 of 4 — Timing"); enterStep below then hands it to
-  // the new step's first control once that step has animated in.
+  // also announces "Step 2 of 4"); enterStep below then hands it to the new
+  // step's first control once that step has animated in.
   useEffect(() => {
     if (stepMoved.current) status.current?.focus();
   }, [step]);
@@ -191,20 +191,25 @@ export function Intake({ open, onClose }: { open: boolean; onClose: () => void }
   const mailto = useMemo(() => {
     const kindLabel = KINDS.find((k) => k.id === kind)?.label ?? "Not specified";
     const timingLabel = TIMING.find((t) => t.id === timing)?.label ?? "Not specified";
+    // Written in the visitor's voice: they send it from their own account, and
+    // "What we need: Replace what we have" reads right from their side.
     const body = [
       `Business: ${details.business}`,
       `Name: ${details.name}`,
       `Email: ${details.email}`,
       details.current ? `Current site: ${details.current}` : null,
       "",
-      `What they need: ${kindLabel}`,
+      `What we need: ${kindLabel}`,
       `Timing: ${timingLabel}`,
       "",
       details.notes ? `Notes:\n${details.notes}` : null,
     ]
-      .filter(Boolean)
-      .join("\n");
-    return `mailto:${STUDIO_EMAIL}?subject=${encodeURIComponent(`Project enquiry — ${details.business || "new"}`)}&body=${encodeURIComponent(body)}`;
+      // Drop the empty optional lines (null) but keep the "" paragraph breaks.
+      .filter((line) => line !== null)
+      .join("\n")
+      .trimEnd();
+    const subject = `Website for ${details.business.trim() || "my business"}`;
+    return `mailto:${STUDIO_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   }, [kind, timing, details]);
 
   const canAdvance = step === 0 ? Boolean(kind) : step === 1 ? Boolean(timing) : true;
@@ -214,7 +219,13 @@ export function Intake({ open, onClose }: { open: boolean; onClose: () => void }
     if (step === 2) {
       const found = validate(details);
       setErrors(found);
-      if (Object.keys(found).length) return;
+      if (Object.keys(found).length) {
+        // Nothing else would tell a screen reader the step didn't move. The
+        // first field to fix reads out its label, that it's invalid, and the
+        // error under it. A frame later, once the errors are on the page.
+        requestAnimationFrame(() => panel.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus());
+        return;
+      }
       goTo(3);
       return;
     }
@@ -227,7 +238,6 @@ export function Intake({ open, onClose }: { open: boolean; onClose: () => void }
     if (!still) celebrate(event.currentTarget).catch(() => {});
   };
 
-  const stepLabel = ["What you need", "Timing", "About you", "Review"][step] ?? "";
   // step only ever moves through 0..3 (clamped in next and Back), which is
   // exactly the mark's build scale: contour, uprights, frame, brace.
   const build = step as 0 | 1 | 2 | 3;
@@ -260,11 +270,11 @@ export function Intake({ open, onClose }: { open: boolean; onClose: () => void }
             <div className="flex items-center justify-between gap-4 border-b border-rule-paper px-6 py-5 md:px-8">
               <div className="min-w-0">
                 <h2 id="intake-title" className="font-display text-[20px] font-semibold leading-tight">
-                  Start a project
+                  Ask for a preview
                 </h2>
                 {/* tabIndex -1: focus parks here between steps (see the step effect). */}
                 <p ref={status} tabIndex={-1} className="mt-1 text-[13px] text-paper-muted outline-none">
-                  {emailRequested ? "Ready to send" : `Step ${step + 1} of 4 — ${stepLabel}`}
+                  {emailRequested ? "Ready to send" : `Step ${step + 1} of 4`}
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-3">
@@ -326,7 +336,7 @@ export function Intake({ open, onClose }: { open: boolean; onClose: () => void }
 
                   {step === 1 ? (
                     <fieldset>
-                      <legend className="text-[15px] text-paper-muted">When would you like it live?</legend>
+                      <legend className="text-[15px] text-paper-muted">When do you need it?</legend>
                       <div className="mt-5 flex flex-col gap-2">
                         {TIMING.map((option) => (
                           <Choice
@@ -347,12 +357,14 @@ export function Intake({ open, onClose }: { open: boolean; onClose: () => void }
                     <div className="flex flex-col gap-6">
                       <Field
                         label="Your name"
+                        autoComplete="name"
                         value={details.name}
                         error={errors.name}
                         onChange={(v) => setDetails((d) => ({ ...d, name: v }))}
                       />
                       <Field
                         label="Business name"
+                        autoComplete="organization"
                         value={details.business}
                         error={errors.business}
                         onChange={(v) => setDetails((d) => ({ ...d, business: v }))}
@@ -360,17 +372,19 @@ export function Intake({ open, onClose }: { open: boolean; onClose: () => void }
                       <Field
                         label="Email"
                         type="email"
+                        autoComplete="email"
                         value={details.email}
                         error={errors.email}
                         onChange={(v) => setDetails((d) => ({ ...d, email: v }))}
                       />
                       <Field
                         label="Current website (optional)"
+                        autoComplete="url"
                         value={details.current}
                         onChange={(v) => setDetails((d) => ({ ...d, current: v }))}
                       />
                       <label className="flex flex-col gap-1.5">
-                        <span className={LABEL}>Anything else (optional)</span>
+                        <span className={LABEL}>Anything else we should know? (optional)</span>
                         <textarea
                           rows={4}
                           value={details.notes}
@@ -384,15 +398,15 @@ export function Intake({ open, onClose }: { open: boolean; onClose: () => void }
                   {step === 3 ? (
                     <div>
                       <p className="text-[15px] leading-relaxed text-paper-muted">
-                        Here is your brief. Open an email draft with it all filled in, then send it from your email
-                        app. Nothing leaves this page until you send it.
+                        Here’s what you told us. The button below opens it as an email in your own email app, all
+                        filled in. Nothing reaches us until you hit send.
                       </p>
                       <dl className="mt-6 divide-y divide-rule-paper border-y border-rule-paper">
                         {[
                           ["Business", details.business],
                           ["Name", details.name],
                           ["Email", details.email],
-                          ["Needs", KINDS.find((k) => k.id === kind)?.label ?? "—"],
+                          ["Looking for", KINDS.find((k) => k.id === kind)?.label ?? "—"],
                           ["Timing", TIMING.find((t) => t.id === timing)?.label ?? "—"],
                           ["Current site", details.current || "—"],
                         ].map(([term, value]) => (
@@ -404,9 +418,11 @@ export function Intake({ open, onClose }: { open: boolean; onClose: () => void }
                       </dl>
 
                       {emailRequested ? (
-                        <p className="mt-6 flex items-center gap-2 text-[15px] text-draft-ink" role="status">
-                          <Check size={16} aria-hidden className="shrink-0" />
-                          Your email app should be open. If it did not, write to {STUDIO_EMAIL}.
+                        <p className="mt-6 flex items-start gap-2 text-[15px] text-draft-ink" role="status">
+                          {/* Top-aligned to the first 24px line: the message runs to three or four lines on a phone. */}
+                          <Check size={16} aria-hidden className="mt-1 shrink-0" />
+                          Your email app should’ve opened. If it didn’t, email us at {STUDIO_EMAIL}. Once it’s sent, one
+                          of us will write back.
                         </p>
                       ) : null}
                     </div>
@@ -418,7 +434,13 @@ export function Intake({ open, onClose }: { open: boolean; onClose: () => void }
             <div className="sticky bottom-0 flex items-center justify-between gap-4 border-t border-rule-paper bg-paper px-6 py-5 md:px-8">
               <button
                 type="button"
-                onClick={() => goTo(Math.max(0, step - 1))}
+                onClick={() => {
+                  // Going back to edit means the draft that opened is out of date:
+                  // the step line and the review drop "Ready to send" until the
+                  // new one is opened.
+                  setEmailRequested(false);
+                  goTo(Math.max(0, step - 1));
+                }}
                 disabled={step === 0}
                 className="inline-flex min-h-11 shrink-0 items-center gap-2 text-[14px] font-medium text-paper-muted enabled:hover:text-paper-ink disabled:opacity-40"
               >
@@ -516,8 +538,9 @@ function Choice({
         </span>
         <span>
           <span className="block text-[15px] font-medium">{label}</span>
+          {/* text-pretty: a span misses the base p rule, and two notes left "you" and "call" alone on a phone. */}
           {note ? (
-            <span className={`mt-1 block text-sm ${checked ? "text-ash" : "text-paper-muted"}`} style={fx.ink}>
+            <span className={`mt-1 block text-pretty text-sm ${checked ? "text-ash" : "text-paper-muted"}`} style={fx.ink}>
               {note}
             </span>
           ) : null}
@@ -547,31 +570,39 @@ function Field({
   onChange,
   error,
   type = "text",
+  autoComplete,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   error?: string;
   type?: string;
+  /** The browser's autofill token (name, organization, email, url). */
+  autoComplete?: string;
 }) {
   const errorId = useId();
+  // The error sits outside the <label>, so it is the field's description only.
+  // Inside, it became part of the name too, and was read out twice.
   return (
-    <label className="flex flex-col gap-1.5">
-      <span className={LABEL}>{label}</span>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={error ? errorId : undefined}
-        className={`${UNDERLINE} ${error ? "border-ember-ink" : RULE_REST}`}
-      />
+    <div className="flex flex-col gap-1.5">
+      <label className="flex flex-col gap-1.5">
+        <span className={LABEL}>{label}</span>
+        <input
+          type={type}
+          value={value}
+          autoComplete={autoComplete}
+          onChange={(e) => onChange(e.target.value)}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? errorId : undefined}
+          className={`${UNDERLINE} ${error ? "border-ember-ink" : RULE_REST}`}
+        />
+      </label>
       {error ? (
         <span id={errorId} className="text-[13px] text-ember-ink">
           {error}
         </span>
       ) : null}
-    </label>
+    </div>
   );
 }
 
