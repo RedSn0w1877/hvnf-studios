@@ -1,0 +1,77 @@
+/*
+  "What you get": the ruled 2x2 sheet. 3px ink rules between the cells, running
+  edge to edge of the page (the grid bleeds out of the section's gutter by
+  margin, the cells put the gutter back as padding).
+
+  Motion lives here because it reaches into the cube drawing. As a cell scrolls
+  in (care.tsx puts data-reveal on it), the outline fades up first and the
+  ember part fades in a beat later. Opacity only. The waiting state is applied
+  only once in-view.ts has marked the page (html[data-rv]), so with no
+  JavaScript the part is simply lit. Reduced motion: lit from the start.
+*/
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 48px calc(-1 * var(--spacing-g)) 0;
+  border-top: 3px solid var(--color-ink);
+}
+
+.cell {
+  display: grid;
+  grid-template-columns: 176px minmax(0, 1fr);
+  gap: 8px 36px;
+  padding: 40px var(--spacing-g) 52px;
+  border-bottom: 3px solid var(--color-ink);
+}
+.cell:nth-child(odd) {
+  border-right: 3px solid var(--color-ink);
+}
+.cell:nth-last-child(-n + 2) {
+  border-bottom: 0;
+}
+
+.art {
+  margin-top: -10px;
+}
+
+@media (max-width: 1023px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  .cell:nth-child(odd) {
+    border-right: 0;
+  }
+  .cell:nth-last-child(2) {
+    border-bottom: 3px solid var(--color-ink);
+  }
+}
+
+@media (max-width: 639px) {
+  .grid {
+    margin-top: 32px;
+  }
+  .cell {
+    grid-template-columns: 84px minmax(0, 1fr);
+    gap: 0 16px;
+    padding: 28px var(--spacing-g) 36px;
+  }
+  .art {
+    margin-top: -2px;
+  }
+}
+
+@keyframes lit {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html[data-rv] .cell:not([data-in]) .art :global(.cube-fill) {
+    opacity: 0;
+  }
+  .cell[data-in=""] .art :global(.cube-fill) {
+    animation: lit 560ms var(--ease-settle) calc(var(--d, 0ms) + 240ms) backwards;
+  }
+}

@@ -1,25 +1,28 @@
 import type { Metadata, Viewport } from "next";
-import { Encode_Sans, Encode_Sans_Expanded } from "next/font/google";
+import { Bricolage_Grotesque, Instrument_Sans } from "next/font/google";
 import { liteScript } from "@/lib/device";
 import { SITE_URL } from "@/lib/studio";
 import "./globals.css";
 
-// One superfamily in two widths, latin only, so the page preloads two small
-// woff2 files. Encode Sans at normal width (400 and 500, which Google serves as
-// one file) sets everything you read: body, buttons, labels, the legal pages.
-const text = Encode_Sans({
+// Two families, latin only, one variable woff2 each, both preloaded.
+//
+// Bricolage Grotesque sets the display type (h1–h3, numerals, the payment bar)
+// at weight 800. It is loaded as the variable font because next/font only
+// allows extra axes on the variable file, and the opsz axis is the point: the
+// browser picks the tight display cut at headline sizes and the open text cut
+// in a 15px number square (font-optical-sizing is auto by default).
+const display = Bricolage_Grotesque({
   subsets: ["latin"],
-  weight: ["400", "500"],
+  axes: ["opsz"],
   display: "swap",
-  variable: "--font-text",
+  variable: "--font-bricolage",
 });
 
-// Its Expanded cut, one static weight, sets h1–h3 and the wordmark.
-const display = Encode_Sans_Expanded({
+// Instrument Sans sets everything you read, 400 to 700 from one variable file.
+const text = Instrument_Sans({
   subsets: ["latin"],
-  weight: "600",
   display: "swap",
-  variable: "--font-encode",
+  variable: "--font-instrument",
 });
 
 export const metadata: Metadata = {
@@ -50,8 +53,9 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#05080b",
-  colorScheme: "dark",
+  // The ember field: the first thing on the page, so the browser bar matches it.
+  themeColor: "#EF4623",
+  colorScheme: "light",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -61,9 +65,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${text.variable} ${display.variable}`} suppressHydrationWarning>
       <head>
         {/*
-          Runs while the HTML parses, before first paint (see device.ts), so lite
-          devices never see a frame of the desktop treatment. page.tsx re-applies
-          the live answer after hydration, which also covers resizes.
+          Runs while the HTML parses, before first paint (see device.ts), so CSS
+          can branch on html[data-lite] and html.js from the very first frame.
+          page.tsx re-applies the live answer after hydration, which also covers
+          resizes.
         */}
         <script dangerouslySetInnerHTML={{ __html: liteScript() }} />
       </head>

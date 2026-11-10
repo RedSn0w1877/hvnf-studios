@@ -61,7 +61,7 @@ export default function PrivacyPage() {
           body: (
             <p>
               Inquiries regarding this notice should be directed to{" "}
-              <a className="text-ember underline underline-offset-4 hover:text-bone" href={`mailto:${STUDIO_EMAIL}`}>
+              <a className="font-semibold underline decoration-2 underline-offset-4 hover:decoration-[3px]" href={`mailto:${STUDIO_EMAIL}`}>
                 {STUDIO_EMAIL}
               </a>
               .

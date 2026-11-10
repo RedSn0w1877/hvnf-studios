@@ -1,103 +1,88 @@
 /*
   source(".."): scan src/ only. Left to auto-detect, Tailwind walks the whole
-  repo, including the three portfolio builds checked out beside src/, and
-  ships every utility THEY use (about 7KB gz of CSS this page never matches).
+  repo, including the portfolio builds checked out beside src/, and ships every
+  utility THEY use (about 7KB gz of CSS this page never matches).
 */
 @import "tailwindcss" source("..");
 
 /*
- * HVNF Studios — design system.
+ * HVNF Studios — design system: "Ember Drawing".
+ *
+ * A printed poster: flat ember field, ink-black type and beams, bone paper,
+ * and one cobalt block. No gradients, no shadows, no blur, square corners.
  *
  * Tailwind v4: tokens are declared here with @theme and become utilities
- * (bg-ink, text-ember, border-rule, …). There is no JS tailwind config in play.
+ * (bg-ember, text-ink, border-bone, px-g, font-display …). `static` makes
+ * Tailwind emit every variable even if no utility uses it, so var(--color-*)
+ * is always safe in a CSS module or an inline style.
  *
- * The look: one object under one orthographic camera. Near-black ink, line white
- * for what is built, draft cyan for what is still being drawn, one ember for
- * anything you can act on, and a paper surface for documents you read or fill in.
+ * Contrast, measured (WCAG 2.x). Text pairs you may use:
+ *   ink on ember 4.95 · ink on bone 15.58 · bone on ink 15.58
+ *   white on cobalt 7.27 · cobalt on white 7.27 · bone-dim on ink 10.65
+ * Never as text: bone or white on ember (about 3.2), ember on cobalt (1.93),
+ * ember on bone (3.15, graphics only). The hex values are locked: a lighter or
+ * yellower ember drops ink-on-ember under AA.
  */
-@theme {
-  /* Surfaces, darkest first */
-  --color-ink: #05080b;
-  --color-carbon: #0a0f14;
-  --color-graphite: #111820;
-  --color-slate-warm: #1a2129;
+@theme static {
+  --color-ember: #ef4623;
+  --color-ink: #15120f;
+  --color-bone: #f1eadb;
+  --color-bone-dim: #cbc3b2; /* text on ink only */
+  --color-cobalt: #1747d4;
+  --color-white: #ffffff;
 
-  /* Lines */
-  --color-rule: rgb(230 237 241 / 0.09);
-  --color-rule-strong: rgb(230 237 241 / 0.18);
-
-  /* Text on dark (contrast measured against ink) */
-  --color-bone: #f4f1ea; /* 17.8:1 */
-  --color-ash: #a8b0bd; /* 9.2:1 */
-  --color-muted: #8f9aa8; /* 7.0:1 */
-
-  /* The cube's colour grammar: built, being drawn, yours to act on */
-  --color-line: #e6edf1; /* built and locked beams */
-  --color-draft: #6fb0cc; /* 8.4:1 — draft beams and guides. Hairlines and labels only, never a fill. */
-  --color-ember: #e9a568; /* 9.6:1 — the one action colour, also the redline */
-  --color-ember-deep: #c9793c;
-
-  /* Paper: the Care sheet and the intake drawer */
-  --color-paper: #ece6d9;
-  --color-paper-deep: #e1d9c9;
-  --color-paper-ink: #14120f; /* 15.0:1 on paper */
-  --color-paper-muted: #4b463d; /* 7.5:1 */
-  --color-ember-ink: #9a4512; /* 5.2:1 — the only orange for text or marks on paper (ember is 1.7:1 there) */
-  --color-draft-ink: #2f5f74; /* 5.6:1 */
-  --color-rule-paper: rgb(20 18 15 / 0.16);
-
-  /* Encode Sans 400/500: everything you read. There is no monospace on the site;
-     font-mono resolves to the body face so a stray utility can't bring one back. */
-  --font-sans: var(--font-text), ui-sans-serif, system-ui, sans-serif;
+  /* Instrument Sans 400–700: everything you read. Nothing lighter than 400. */
+  --font-sans: var(--font-instrument), system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Bricolage Grotesque 800: h1–h3, numerals, the payment bar, number squares. */
+  --font-display: var(--font-bricolage), "Arial Black", system-ui, sans-serif;
+  /* There is no monospace on the site; a stray utility can't bring one back. */
   --font-mono: var(--font-sans);
-  /* Encode Sans Expanded 600: h1–h3, the nav wordmark, the mobile sheet links and the intake title. Nothing else. */
-  --font-display: var(--font-encode), var(--font-text), ui-sans-serif, sans-serif;
 
-  /* One easing for the whole site: weighted, settles, never bounces. */
+  /* The page gutter: 16px at 360 wide, never more than 56px. px-g, -mx-g, pl-g … */
+  --spacing-g: clamp(16px, 3.9vw, 56px);
+
+  /* One easing for every entrance: weighted, settles, never bounces. */
   --ease-settle: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @layer base {
+  :root {
+    /* The nav sits over the top of the hero; pad the hero by this. */
+    --nav-h: 68px;
+    /* Focus ring colour. Each surface below sets the one that shows on it. */
+    --focus: var(--color-bone);
+  }
+
+  @media (max-width: 639px) {
+    :root {
+      --nav-h: 60px;
+    }
+  }
+
   html {
+    -webkit-text-size-adjust: 100%;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     scroll-behavior: smooth;
-    /* Lenis drives scrolling; this is the fallback for lite and reduced-motion visitors. */
-  }
-
-  html.lenis,
-  html.lenis body {
-    height: auto;
-  }
-  .lenis.lenis-smooth {
-    scroll-behavior: auto !important;
-  }
-  .lenis:not(.lenis-autoToggle).lenis-stopped {
-    overflow: clip;
-  }
-  .lenis.lenis-autoToggle {
-    transition-property: overflow;
-    transition-duration: 1ms;
-    transition-behavior: allow-discrete;
   }
 
   body {
-    isolation: isolate;
     color: var(--color-bone);
-    font-family: var(--font-sans);
-    line-height: 1.6;
-    /*
-      Flat base only. The atmosphere is painted by a fixed, composited layer (see
-      .sky below) — `background-attachment: fixed` on the body forces a repaint of
-      the whole background on every scroll frame, which is one of the cheapest ways
-      to make a phone stutter.
-    */
     background-color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 17px;
+    line-height: 1.55;
     /*
       clip, not hidden: hidden would make the body a scroll container and break
-      every position: sticky below it (the Method slot, the Work stage).
+      position: sticky anywhere below it.
     */
     overflow-x: clip;
+  }
+
+  @media (max-width: 639px) {
+    body {
+      font-size: 16px;
+    }
   }
 
   ::selection {
@@ -105,14 +90,10 @@
     color: var(--color-ink);
   }
 
+  /* One ring everywhere: 3px, square, in whichever ink shows on this surface. */
   :focus-visible {
-    outline: 2px solid var(--color-ember);
+    outline: 3px solid var(--focus);
     outline-offset: 3px;
-  }
-
-  /* Ember is 1.7:1 on paper; the ring has to be ink there to be seen at all. */
-  [data-surface="paper"] :focus-visible {
-    outline-color: var(--color-paper-ink);
   }
 
   h1,
@@ -128,314 +109,429 @@
 
 @layer components {
   /*
-    The sky: the backdrop every device gets, WebGL or not. One fixed, promoted
-    layer with a single vertical gradient (slightly lighter at the top, no glows),
-    painted once and composited thereafter, so it costs nothing per scroll frame.
-    On capable machines the cube renders over it.
+    Surfaces. Put data-surface on a section (kit.tsx's <Section> does) and it
+    gets the field, the text colour that passes on it, a matching focus ring and
+    a selection colour that shows.
   */
-  .sky {
-    position: fixed;
-    inset: 0;
-    z-index: -20;
-    pointer-events: none;
-    background-color: #05080b;
-    background-image: linear-gradient(180deg, #071019 0%, #05080b 55%, #04060a 100%);
+  [data-surface="ember"] {
+    background-color: var(--color-ember);
+    color: var(--color-ink);
+    --focus: var(--color-ink);
+  }
+  [data-surface="bone"] {
+    background-color: var(--color-bone);
+    color: var(--color-ink);
+    --focus: var(--color-ink);
+  }
+  [data-surface="cobalt"] {
+    background-color: var(--color-cobalt);
+    color: var(--color-white);
+    --focus: var(--color-white);
+  }
+  [data-surface="ink"] {
+    background-color: var(--color-ink);
+    color: var(--color-bone);
+    --focus: var(--color-bone);
+  }
+  :is([data-surface="ember"], [data-surface="bone"], [data-surface="cobalt"]) ::selection {
+    background: var(--color-ink);
+    color: var(--color-bone);
+  }
+  [data-surface="ink"] ::selection {
+    background: var(--color-ember);
+    color: var(--color-ink);
+  }
+
+  /* The 8px ink band where a section meets a different colour block. */
+  .band {
+    border-top: 8px solid var(--color-ink);
   }
 
   /*
-    Section shell: the column every section is set in. The gutter is fluid, so it
-    is exactly 16px at 360px wide and never more than 56px; at 1920 and up the
-    column widens instead of stranding a narrow strip in the middle of the screen.
+    Type scale. Each class is the whole recipe (family, weight, tracking,
+    leading, size), so a heading is one class: <h2 className="t-h2">.
+    Colour comes from the surface. Two breakpoints only: 640 and 1024.
   */
-  .shell {
-    width: 100%;
-    max-width: 84rem;
-    margin-inline: auto;
-    padding-inline: clamp(1rem, 4vw, 3.5rem);
+  .t-display,
+  .t-h1,
+  .t-h2,
+  .t-h2-sm,
+  .t-poster,
+  .t-h3,
+  .t-h3-lg,
+  .t-pay,
+  .t-num {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-variant-ligatures: none;
+  }
+  .t-display,
+  .t-h1,
+  .t-h2,
+  .t-h2-sm,
+  .t-poster {
+    letter-spacing: -0.024em;
+    line-height: 0.88;
+    text-wrap: balance;
+  }
+  /* The hero headline: 140px at 1440, 56px at 390. */
+  .t-h1 {
+    font-size: clamp(52px, 9.7vw, 140px);
+  }
+  /* Section headings: 104px at 1440, 44px at 390. */
+  .t-h2 {
+    font-size: clamp(44px, 7.2vw, 104px);
+  }
+  /* The Examples title block: 72px at 1440. */
+  .t-h2-sm {
+    font-size: clamp(44px, 5vw, 72px);
+  }
+  /* The closing line, at headline size: 140px at 1440, 48px at 390. */
+  .t-poster {
+    font-size: clamp(46px, 9.7vw, 140px);
+  }
+  /* Step and demo headings: 28px, 26px on phones. */
+  .t-h3,
+  .t-h3-lg,
+  .t-pay {
+    letter-spacing: -0.022em;
+    line-height: 1.04;
+  }
+  .t-h3 {
+    font-size: 28px;
+  }
+  /* Promise headings: 34px, 25px on phones. */
+  .t-h3-lg {
+    font-size: 34px;
+  }
+  /* The payment bar: 28px at 1440, 26px on phones. */
+  .t-pay {
+    font-size: clamp(22px, 1.95vw, 28px);
+    line-height: 1;
+  }
+  /* The big step numerals: 72px, 56px on phones. */
+  .t-num {
+    font-size: 72px;
+    line-height: 0.8;
+    letter-spacing: -0.04em;
+  }
+  /* The hero lead: 22px at 1440, 17px at 390. */
+  .t-lead {
+    font-size: clamp(17px, 1.55vw, 22px);
+    line-height: 1.42;
+    font-weight: 500;
+  }
+  /* The line beside a section heading: 22px at 1440, 18px at 390. */
+  .t-sub {
+    font-size: clamp(18px, 1.55vw, 22px);
+    line-height: 1.4;
+    font-weight: 500;
+    text-wrap: balance;
+  }
+  /* Body copy inside sections: 16px. (The page default is 17px, 16px on phones.) */
+  .t-body {
+    font-size: 16px;
+    line-height: 1.55;
+  }
+  /* Labels: hero callouts, step states. 15px semibold. */
+  .t-label {
+    font-size: 15px;
+    line-height: 1.22;
+    font-weight: 600;
+  }
+  /* Small print: sector lines, the footer, the speed line. 14px. */
+  .t-small {
+    font-size: 14px;
+    line-height: 1.45;
+    font-weight: 500;
   }
 
-  @media (min-width: 1920px) {
-    .shell {
-      max-width: 100rem;
+  @media (max-width: 639px) {
+    .t-h1 {
+      font-size: 14.4vw;
+    }
+    .t-poster {
+      font-size: 12.4vw;
+    }
+    .t-h3 {
+      font-size: 26px;
+    }
+    .t-h3-lg {
+      font-size: 25px;
+    }
+    .t-pay {
+      font-size: 26px;
+    }
+    .t-num {
+      font-size: 56px;
     }
   }
 
   /*
-    Fluid type scale, opt-in. Size, leading and tracking only; colour and family
-    stay in the markup (pair .t-h1/.t-h2/.t-h3 with font-display). Section h2s
-    stay quieter (28–40px) so the h1 and the closing line are the two loud ones.
+    The button (kit.tsx, <Button>): a square ink block, 56px tall, 46px in the
+    nav. Hover and focus lift it with a flat overlay faded by opacity; a press
+    nudges it 1px. Nothing here repaints layout.
   */
-  .t-h1 {
-    font-size: clamp(2.1rem, 0.75rem + 3.9vw, 4.6rem);
-    line-height: 0.98;
-    letter-spacing: -0.03em;
-    max-width: 14ch;
-  }
-  .t-h2 {
-    font-size: clamp(1.75rem, 1.05rem + 1.7vw, 2.5rem);
-    line-height: 1.02;
-    letter-spacing: -0.025em;
-    max-width: 16ch;
-  }
-  .t-h3 {
-    font-size: clamp(1.2rem, 0.95rem + 0.9vw, 1.7rem);
-    line-height: 1.12;
-    letter-spacing: -0.012em;
-  }
-  .t-lead {
-    font-size: clamp(1.0625rem, 0.98rem + 0.3vw, 1.1875rem);
-    line-height: 1.6;
-    color: var(--color-ash);
-  }
-
-  /*
-    The Beam: the one button (kit.tsx, Magnetic). The chamfer is a clip-path on
-    the FILL span only, never on the control, so the focus ring around it is never
-    clipped. Every hover change here is transform or opacity; nothing repaints.
-  */
-  .beam {
+  .btn {
+    --btn-bg: var(--color-ink);
+    --btn-fg: var(--color-bone);
     position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.625rem;
+    gap: 12px;
+    min-height: 56px;
+    padding: 0 28px;
+    background-color: var(--btn-bg);
+    color: var(--btn-fg);
     font-family: var(--font-sans);
-    font-weight: 500;
+    font-size: 18px;
+    font-weight: 600;
     line-height: 1;
+    text-decoration: none;
     white-space: nowrap;
-    outline-offset: 4px;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
   }
-
-  .beam[data-size="sm"] {
-    height: 2.5rem;
-    font-size: 0.875rem;
+  .btn[data-size="sm"] {
+    min-height: 46px;
+    padding: 0 20px;
+    font-size: 16px;
   }
-  .beam[data-size="md"] {
-    height: 3rem;
-    font-size: 0.9375rem;
+  /* For ink ground, where an ink button would vanish. Ink text on both. */
+  .btn[data-tone="ember"] {
+    --btn-bg: var(--color-ember);
+    --btn-fg: var(--color-ink);
   }
-  .beam[data-size="lg"] {
-    height: 3.5rem;
-    font-size: 0.9375rem;
+  .btn[data-tone="bone"] {
+    --btn-bg: var(--color-bone);
+    --btn-fg: var(--color-ink);
   }
-  .beam[data-variant="solid"][data-size="sm"] {
-    padding-inline: 1rem;
+  .btn[data-block] {
+    display: flex;
+    width: 100%;
   }
-  .beam[data-variant="solid"][data-size="md"] {
-    padding-inline: 1.5rem;
-  }
-  .beam[data-variant="solid"][data-size="lg"] {
-    padding-inline: 1.875rem;
-  }
-
-  /* Tones: ember on dark (9.6:1 ink on ember), ink on paper (bone on paper-ink). */
-  .beam[data-tone="ember"] {
-    --beam-fill: var(--color-ember);
-    --beam-text: var(--color-ink);
-    --beam-lift: rgb(255 255 255 / 0.14);
-    --beam-link: var(--color-bone);
-    --beam-under: var(--color-rule-strong);
-    --beam-mark: var(--color-ember);
-  }
-  .beam[data-tone="ink"] {
-    --beam-fill: var(--color-paper-ink);
-    --beam-text: var(--color-bone);
-    --beam-lift: rgb(244 241 234 / 0.1);
-    --beam-link: var(--color-paper-ink);
-    --beam-under: var(--color-rule-paper);
-    --beam-mark: var(--color-ember-ink);
-  }
-  .beam[data-variant="solid"] {
-    color: var(--beam-text);
-  }
-  .beam[data-variant="link"] {
-    color: var(--beam-link);
-  }
-
-  .beam-fill {
-    position: absolute;
-    inset: 0;
-    background: var(--beam-fill);
-    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
-  }
-  /* A flat lift on hover, faded with opacity. Flat on purpose: no sheen. */
-  .beam-fill::after {
+  .btn::after {
     content: "";
     position: absolute;
     inset: 0;
-    background: var(--beam-lift);
+    background-color: var(--btn-fg);
     opacity: 0;
-    transition: opacity 240ms var(--ease-settle);
-  }
-
-  /* Link variant: the underline is a hairline, and an ember one grows over it from the left. */
-  .beam-ul {
-    position: absolute;
-    inset-inline: 0;
-    bottom: -0.4375rem;
-    height: 1px;
-    background: var(--beam-under);
     pointer-events: none;
+    transition: opacity 150ms linear;
   }
-  .beam-ul::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: var(--beam-mark);
-    transform: scaleX(0);
-    transform-origin: left;
-    transition: transform 420ms var(--ease-settle);
+  .btn:focus-visible::after {
+    opacity: 0.14;
+  }
+  @media (hover: hover) {
+    .btn:not(:disabled):hover::after {
+      opacity: 0.14;
+    }
+  }
+  .btn:not(:disabled):active {
+    transform: translateY(1px);
+  }
+  .btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
   }
 
-  /* Keyboard focus earns the same answer as a hover, on every device. */
-  .beam:focus-visible .beam-fill::after {
+  /* The text link (kit.tsx, <TextLink>): semibold, a 2px underline, a 44px target. */
+  .link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 6px;
+  }
+  @media (hover: hover) {
+    .link:hover {
+      text-decoration-thickness: 3px;
+    }
+  }
+
+  /* Arrow icons inside buttons and links (kit.tsx). */
+  .ico {
+    width: 0.95em;
+    height: 0.95em;
+    flex: none;
+  }
+
+  /* The number square (kit.tsx, <NumberSquare>): the promises' 1 to 4. */
+  .num {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    background-color: var(--color-ink);
+    color: var(--color-bone);
+    font-family: var(--font-display);
+    font-size: 21px;
+    font-weight: 800;
+    line-height: 1;
+  }
+  .num[data-size="sm"] {
+    width: 28px;
+    height: 28px;
+    font-size: 17px;
+  }
+  .num[data-size="xs"] {
+    width: 24px;
+    height: 24px;
+    font-size: 15px;
+  }
+  .num[data-tone="bone"] {
+    background-color: var(--color-bone);
+    color: var(--color-ink);
+  }
+
+  /* Every cube drawing (cube-art.tsx): a block that keeps its viewBox ratio. */
+  .cube {
+    display: block;
+    height: auto;
+  }
+  /* The hero cube's leaders start outside its viewBox. */
+  .cube-hero {
+    overflow: visible;
+  }
+  /*
+    Hero part highlights: a bone copy of one part's beams, invisible until an
+    ancestor says which part is lit (data-lit="top|left|right|brace").
+  */
+  .cube-hl {
+    opacity: 0;
+    transition: opacity 150ms linear;
+  }
+  [data-lit="top"] .cube-hl[data-part="top"],
+  [data-lit="left"] .cube-hl[data-part="left"],
+  [data-lit="right"] .cube-hl[data-part="right"],
+  [data-lit="brace"] .cube-hl[data-part="brace"] {
     opacity: 1;
   }
-  .beam:focus-visible .beam-ul::after {
-    transform: scaleX(1);
-  }
-
-  @media (hover: hover) {
-    .beam:not(:disabled):hover .beam-fill::after {
-      opacity: 1;
-    }
-    .beam:not(:disabled):hover .beam-ul::after {
-      transform: scaleX(1);
-    }
-  }
 }
 
 /*
-  Everything below is deliberately unlayered. Unlayered rules beat Tailwind's
-  utilities layer, which is what a hide rule needs: an entering element's own
-  opacity or translate utilities must not show it early.
+  Motion. Everything below is deliberately unlayered, so it beats Tailwind's
+  utilities: a waiting element's own opacity utility must not show it early.
 
-  Entrances travel along the cube's three iso axes: a arrives from the lower
-  left, b from the upper right, c straight up from below. Static offsets use 2D
-  translate so a waiting element is never promoted to its own layer; only a
-  running animation is.
+  Two ways in, same six moves, transform and opacity only:
+
+    .ld-*   plays once at first paint. Pure CSS, never waits on JS.
+    .rv-*   plays once when its nearest [data-reveal] ancestor (or itself)
+            scrolls into view. lib/in-view.ts sets data-in; see its header.
+
+    rise   16px up + fade          slide  3vw in from the right + fade
+    fade   fade only               up     20% of its own height up + fade
+    wipe   scaleX from the left    pop    scale .85 → 1 + fade
+
+  Stagger with style={{ "--d": "80ms" }}; change the length with --rv-t.
+
+  The keyframes have no `to`: each plays back to the element's own resting
+  state and the fill is `backwards`, so nothing lingers afterwards and at rest
+  document.getAnimations() is empty. Do not put .ld-* or .rv-* on an element
+  that also has a transform utility or a hover transform: wrap it instead.
+
+  Without JS, html[data-rv] is never set and nothing is ever hidden. Under
+  reduced motion none of these rules exist, so everything is simply there.
 */
-
-@keyframes lock-a {
+@keyframes rv-rise {
   from {
     opacity: 0;
-    transform: translate(-12px, 7px);
+    transform: translateY(16px);
   }
 }
-@keyframes lock-b {
+@keyframes rv-fade {
   from {
     opacity: 0;
-    transform: translate(12px, -7px);
   }
 }
-@keyframes lock-c {
+@keyframes rv-wipe {
   from {
-    opacity: 0;
-    transform: translate(0, 10px);
+    transform: scaleX(0);
   }
 }
-/* Below 768px every offset travels 70% as far. */
-@keyframes lock-a-sm {
+@keyframes rv-pop {
   from {
     opacity: 0;
-    transform: translate(-8.4px, 4.9px);
+    transform: scale(0.85);
   }
 }
-@keyframes lock-b-sm {
+@keyframes rv-slide {
   from {
     opacity: 0;
-    transform: translate(8.4px, -4.9px);
+    transform: translateX(3vw);
   }
 }
-@keyframes lock-c-sm {
+@keyframes rv-up {
   from {
     opacity: 0;
-    transform: translate(0, 7px);
+    transform: translateY(20%);
   }
 }
 
-/*
-  The lock-* keyframes have no `to`: each animates back to the element's own
-  resting opacity and transform, and fill-mode is backwards (hold the start pose
-  through --ld), not both. Nothing lingers after the 640ms, and the element's
-  `transition` is never touched, so a Method step that dims itself to .4 or a row
-  with its own hover transitions keeps both. Keyframes rather than transitions
-  also mean an element marked data-instant simply never animates.
+.ld-wipe,
+.rv-wipe {
+  transform-origin: left center;
+}
 
-  Do not combine data-lock or .load-* with JS-driven transforms or another
-  animation on the SAME element (inline styles win over the hide rule, and two
-  animations fight over the shorthand); wrap the content instead.
-*/
 @media (prefers-reduced-motion: no-preference) {
-  /* Load entrances: pure CSS from first paint, no JS, never waiting on hydration. */
-  .load-a {
-    animation: lock-a 640ms var(--ease-settle) var(--ld, 0ms) backwards;
+  .ld-rise {
+    animation: rv-rise var(--rv-t, 560ms) var(--ease-settle) var(--d, 0ms) backwards;
   }
-  .load-b {
-    animation: lock-b 640ms var(--ease-settle) var(--ld, 0ms) backwards;
+  .ld-fade {
+    animation: rv-fade var(--rv-t, 560ms) var(--ease-settle) var(--d, 0ms) backwards;
   }
-  .load-c {
-    animation: lock-c 640ms var(--ease-settle) var(--ld, 0ms) backwards;
+  .ld-wipe {
+    animation: rv-wipe var(--rv-t, 560ms) var(--ease-settle) var(--d, 0ms) backwards;
+  }
+  .ld-pop {
+    animation: rv-pop var(--rv-t, 560ms) var(--ease-settle) var(--d, 0ms) backwards;
+  }
+  .ld-slide {
+    animation: rv-slide var(--rv-t, 560ms) var(--ease-settle) var(--d, 0ms) backwards;
+  }
+  .ld-up {
+    animation: rv-up var(--rv-t, 560ms) var(--ease-settle) var(--d, 0ms) backwards;
   }
 
-  /* Axis lock: hidden only once lock.ts has sorted the page (data-lock-ready). */
-  [data-lock="a"] {
-    --lx: -12px;
-    --ly: 7px;
-  }
-  [data-lock="b"] {
-    --lx: 12px;
-    --ly: -7px;
-  }
-  [data-lock="c"] {
-    --lx: 0px;
-    --ly: 10px;
-  }
-  html[data-lock-ready] [data-lock]:not([data-lock="none"]):not([data-in]) {
+  /* Waiting: hidden only once in-view.ts has sorted the page (html[data-rv]). */
+  html[data-rv] [data-reveal]:not([data-in]) :is(.rv-rise, .rv-fade, .rv-wipe, .rv-pop, .rv-slide, .rv-up),
+  html[data-rv] [data-reveal]:not([data-in]):is(.rv-rise, .rv-fade, .rv-wipe, .rv-pop, .rv-slide, .rv-up) {
     opacity: 0;
-    transform: translate(var(--lx, 0px), var(--ly, 0px));
-  }
-  html[data-lock-ready] [data-lock="a"][data-in]:not([data-instant]) {
-    animation: lock-a 640ms var(--ease-settle) var(--ld, 0ms) backwards;
-  }
-  html[data-lock-ready] [data-lock="b"][data-in]:not([data-instant]) {
-    animation: lock-b 640ms var(--ease-settle) var(--ld, 0ms) backwards;
-  }
-  html[data-lock-ready] [data-lock="c"][data-in]:not([data-instant]) {
-    animation: lock-c 640ms var(--ease-settle) var(--ld, 0ms) backwards;
   }
 
-  @media (max-width: 767px) {
-    [data-lock="a"] {
-      --lx: -8.4px;
-      --ly: 4.9px;
-    }
-    [data-lock="b"] {
-      --lx: 8.4px;
-      --ly: -4.9px;
-    }
-    [data-lock="c"] {
-      --ly: 7px;
-    }
-    .load-a,
-    html[data-lock-ready] [data-lock="a"][data-in]:not([data-instant]) {
-      animation-name: lock-a-sm;
-    }
-    .load-b,
-    html[data-lock-ready] [data-lock="b"][data-in]:not([data-instant]) {
-      animation-name: lock-b-sm;
-    }
-    .load-c,
-    html[data-lock-ready] [data-lock="c"][data-in]:not([data-instant]) {
-      animation-name: lock-c-sm;
-    }
+  /* Arrived by scrolling (data-in=""). Already on screen at load is data-in="now": no replay. */
+  [data-reveal][data-in=""] .rv-rise,
+  [data-reveal][data-in=""].rv-rise {
+    animation: rv-rise var(--rv-t, 560ms) var(--ease-settle) var(--d, 0ms) backwards;
+  }
+  [data-reveal][data-in=""] .rv-fade,
+  [data-reveal][data-in=""].rv-fade {
+    animation: rv-fade var(--rv-t, 560ms) var(--ease-settle) var(--d, 0ms) backwards;
+  }
+  [data-reveal][data-in=""] .rv-wipe,
+  [data-reveal][data-in=""].rv-wipe {
+    animation: rv-wipe var(--rv-t, 560ms) var(--ease-settle) var(--d, 0ms) backwards;
+  }
+  [data-reveal][data-in=""] .rv-pop,
+  [data-reveal][data-in=""].rv-pop {
+    animation: rv-pop var(--rv-t, 560ms) var(--ease-settle) var(--d, 0ms) backwards;
+  }
+  [data-reveal][data-in=""] .rv-slide,
+  [data-reveal][data-in=""].rv-slide {
+    animation: rv-slide var(--rv-t, 560ms) var(--ease-settle) var(--d, 0ms) backwards;
+  }
+  [data-reveal][data-in=""] .rv-up,
+  [data-reveal][data-in=""].rv-up {
+    animation: rv-up var(--rv-t, 560ms) var(--ease-settle) var(--d, 0ms) backwards;
   }
 }
 
-/* Reduced motion: no offsets (those rules only exist under no-preference), and every
-   transition or animation that remains resolves at once. */
+/* Reduced motion: every transition or animation that remains resolves at once. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

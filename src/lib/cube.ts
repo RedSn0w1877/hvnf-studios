@@ -1,20 +1,16 @@
 /**
- * The HVNF cube as data: the one table every renderer reads.
+ * The HVNF cube as data: the one table every drawing reads.
  *
  * The logo is an isometric drawing of a 6×6×6 lattice frame. Every line in the
  * SVG master (brand/hvnf-blueprint/hvnf-blueprint-transparent.svg) is a segment
- * between two lattice points (a, b, c), so these 39 rows draw the inline SVG
- * marks, the favicon and the WebGL beams alike. Nobody hand-copies coordinates.
+ * between two lattice points (a, b, c), so these 39 rows draw every cube on the
+ * site: the hero poster cube, the four step states, the lit promise cubes, the
+ * closing block and the small mark (components/site/cube-art.tsx). Nobody
+ * hand-copies coordinates.
  *
- * Axes: a runs down-right on screen, b down-left, c straight up. A step along
- * (1,1,1) projects to nothing at the true isometric angle. That blind direction
- * is the paradox lever: the 3D cube can scatter in depth and still read as the
- * flat logo, until the camera leaves the one angle where it lines up.
+ * Axes: a runs down-right on screen, b down-left, c straight up.
  *
- * No React, no DOM, and only what the SVG marks need: this module ships in the
- * main chunk (every CubeMark imports it). The Stage's 3D side (seeded depth,
- * jitter, normals, the live `cube` state) lives in components/site/cube-3d.ts,
- * which only the lazy Stage chunk imports, so lite visitors never download it.
+ * No React and no DOM: plain data, safe to import from server components.
  */
 
 export type Lattice = readonly [a: number, b: number, c: number];
@@ -94,21 +90,41 @@ function axisOf([p, q]: readonly [Lattice, Lattice]): Axis {
 }
 
 const AXES = TABLE.map(axisOf);
-// Every vertical inside the contour, derived rather than listed: 0–7, 14, 15, 27, 28.
-const VERTICALS = AXES.flatMap((axis, i) => (axis === "c" && !OUTLINE.includes(i) ? [i] : []));
 
-export type CubeSubset = "outline" | "uprights" | "centerUpright" | "brace" | "redline" | "nearY" | "nearCorner";
+export type CubeSubset = "outline" | "brace" | "redline" | "nearY";
 
-/** Segment index lists. `small` is the cut used at icon sizes: the 12 lines that survive at 28px. */
-export const SUBSETS: Readonly<Record<CubeSubset | "small", readonly number[]>> = {
+/** Segment index lists the drawings pick from. */
+export const SUBSETS: Readonly<Record<CubeSubset, readonly number[]>> = {
   outline: OUTLINE,
-  uprights: VERTICALS,
-  centerUpright: [4, 5],
   brace: BRACE,
   redline: REDLINE,
   nearY: NEAR_Y,
-  nearCorner: [11, 16, 4],
-  small: [...OUTLINE, ...NEAR_Y, ...BRACE],
+};
+
+/* ── The four parts ──────────────────────────────────────────────────────── */
+
+/**
+ * The mark split into the four parts the page numbers 1 to 4: the three faces
+ * and the brace. Each face owns the two contour edges that bound it, so the
+ * four lists together are all 39 segments, each exactly once.
+ */
+export type CubePart = "top" | "left" | "right" | "brace";
+
+export const PART_ORDER: readonly CubePart[] = ["top", "left", "right", "brace"];
+
+export const PARTS: Readonly<Record<CubePart, readonly number[]>> = {
+  top: [38, 33, 16, 11, 9, 13, 18, 23, 12, 22, 0, 3, 6],
+  left: [37, 36, 4, 5, 1, 2, 14, 20, 26, 8, 10, 15, 24, 25],
+  right: [34, 35, 7, 28, 30, 17, 19, 21, 27, 29],
+  brace: BRACE,
+};
+
+/** Each part as a closed outline in lattice points: the flat block that lights it. */
+export const PART_FACES: Readonly<Record<CubePart, readonly Lattice[]>> = {
+  top: [[0, 0, 6], [6, 0, 6], [6, 6, 6], [0, 6, 6]],
+  left: [[0, 6, 6], [6, 6, 6], [6, 6, 0], [0, 6, 0]],
+  right: [[6, 6, 6], [6, 0, 6], [6, 0, 0], [6, 6, 0]],
+  brace: [TABLE[31][0], TABLE[31][1], TABLE[32][1], TABLE[32][0]],
 };
 
 /* ── Segments ────────────────────────────────────────────────────────────── */
@@ -166,6 +182,10 @@ if (process.env.NODE_ENV !== "production") {
     );
     return error <= 0.05 ? [] : [i];
   });
+  const covered = Object.values(PARTS).flat().sort((m, n) => m - n);
+  if (covered.length !== SEGMENTS.length || covered.some((v, i) => v !== i)) {
+    console.error("[cube] the four parts no longer cover every segment exactly once");
+  }
   if (reference.length !== SEGMENTS.length || drifted.length > 0) {
     console.error(`[cube] lattice table no longer matches the SVG master (segments: ${drifted.join(", ") || "count"})`);
   }

@@ -6,9 +6,11 @@
  * needs the same rules for its live hook. Both read them from here, so the guess
  * made before first paint and the answer React settles on can never drift apart.
  *
- * "Lite" means: no WebGL chunk, no Lenis, no scroll director. Phones, small
- * touch screens, reduced motion, low core counts, low memory, data saver and
- * slow connections all land there.
+ * "Lite" means a phone-class budget: phones, small touch screens, reduced
+ * motion, low core counts, low memory, data saver and slow connections. The
+ * page no longer has a heavy mode to switch off (there is no WebGL or scroll
+ * library on any device); the flag is kept as html[data-lite] for styles and
+ * for anything heavy added later.
  */
 
 export const LITE_QUERIES = [

@@ -5,8 +5,11 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { ArrowLeft, ArrowRight, Check, X } from "lucide-react";
 import type confetti from "canvas-confetti";
 import { STUDIO_EMAIL } from "@/lib/studio";
-import { CubeMark } from "./cube-mark";
-import { IsoRhombus, Magnetic, SETTLE } from "./kit";
+import { SmallMark } from "./cube-art";
+import { Button } from "./kit";
+
+// The drawer's motion easing (the same curve as --ease-settle in globals.css).
+const SETTLE = [0.22, 1, 0.36, 1] as const;
 
 /**
  * Project intake.
@@ -16,10 +19,11 @@ import { IsoRhombus, Magnetic, SETTLE } from "./kit";
  * visitor's mail client addressed to the studio — a real path that works offline
  * of any backend, and never claims to have sent something it did not.
  *
- * It is dressed as a paper brief sheet: a document you fill in, so it sits on
- * the paper surface, and data-surface="paper" turns every focus ring ink. The
- * mark in the header draws one more stage of the cube per step and gets its
- * brace on the review.
+ * It is dressed as a printed brief sheet in the Ember Drawing system: an ember
+ * header with the cube mark, a bone sheet you fill in, square ink buttons and
+ * boxed fields. data-surface="bone" turns every focus ring ink; the header sets
+ * its own. Every colour pair is one of the verified ones (ink on bone, ink on
+ * ember, bone on ink). Only transform and opacity ever move.
  */
 
 const KINDS = [
@@ -238,10 +242,6 @@ export function Intake({ open, onClose }: { open: boolean; onClose: () => void }
     if (!still) celebrate(event.currentTarget).catch(() => {});
   };
 
-  // step only ever moves through 0..3 (clamped in next and Back), which is
-  // exactly the mark's build scale: contour, uprights, frame, brace.
-  const build = step as 0 | 1 | 2 | 3;
-
   return (
     <AnimatePresence>
       {open ? (
@@ -263,39 +263,41 @@ export function Intake({ open, onClose }: { open: boolean; onClose: () => void }
             animate={reduce ? { opacity: 1 } : { x: 0 }}
             exit={reduce ? { opacity: 0 } : { x: "100%" }}
             transition={{ duration: 0.6, ease: SETTLE }}
-            data-lenis-prevent
-            data-surface="paper"
-            className="absolute inset-y-0 right-0 flex w-full max-w-xl flex-col overflow-y-auto border-l border-rule-paper bg-paper text-paper-ink"
+            data-surface="bone"
+            className="absolute inset-y-0 right-0 flex w-full max-w-xl flex-col overflow-y-auto border-l-8 border-ink"
           >
-            <div className="flex items-center justify-between gap-4 border-b border-rule-paper px-6 py-5 md:px-8">
-              <div className="min-w-0">
-                <h2 id="intake-title" className="font-display text-[20px] font-semibold leading-tight">
-                  Ask for a preview
-                </h2>
-                {/* tabIndex -1: focus parks here between steps (see the step effect). */}
-                <p ref={status} tabIndex={-1} className="mt-1 text-[13px] text-paper-muted outline-none">
-                  {emailRequested ? "Ready to send" : `Step ${step + 1} of 4`}
-                </p>
+            <div
+              data-surface="ember"
+              className="flex items-center justify-between gap-4 border-b-8 border-ink px-6 py-5 md:px-8"
+            >
+              <div className="flex min-w-0 items-center gap-4">
+                <SmallMark className="w-9 shrink-0" />
+                <div className="min-w-0">
+                  <h2 id="intake-title" className="t-h3">
+                    Ask for a preview
+                  </h2>
+                  {/* tabIndex -1: focus parks here between steps (see the step effect). */}
+                  <p ref={status} tabIndex={-1} className="t-small mt-1.5 outline-none">
+                    {emailRequested ? "Ready to send" : `Step ${step + 1} of 4`}
+                  </p>
+                </div>
               </div>
-              <div className="flex shrink-0 items-center gap-3">
-                <CubeMark size={44} tone="paper" build={build} />
-                <button
-                  type="button"
-                  onClick={onClose}
-                  aria-label="Close"
-                  className="flex h-11 w-11 items-center justify-center rounded-[2px] border border-rule-paper text-paper-muted hover:border-paper-ink/40 hover:text-paper-ink"
-                >
-                  <X size={18} aria-hidden />
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Close"
+                className="flex h-11 w-11 shrink-0 items-center justify-center bg-ink text-bone"
+              >
+                <X size={20} strokeWidth={2.5} aria-hidden />
+              </button>
             </div>
 
-            {/* Progress */}
-            <div aria-hidden className="flex gap-1 px-6 pt-4 md:px-8">
+            {/* Progress: four ink bars that fill in as the steps are done. */}
+            <div aria-hidden className="flex gap-2 px-6 pt-6 md:px-8">
               {[0, 1, 2, 3].map((i) => (
-                <span key={i} className="h-[2px] flex-1 overflow-hidden bg-rule-paper">
+                <span key={i} className="h-[6px] flex-1 overflow-hidden bg-ink/20">
                   <motion.span
-                    className="block h-full origin-left bg-paper-ink"
+                    className="block h-full origin-left bg-ink"
                     initial={false}
                     animate={{ scaleX: i <= step ? 1 : 0 }}
                     transition={still ? { duration: 0 } : { duration: 0.5, ease: SETTLE }}
@@ -316,8 +318,8 @@ export function Intake({ open, onClose }: { open: boolean; onClose: () => void }
                 >
                   {step === 0 ? (
                     <fieldset>
-                      <legend className="text-[15px] text-paper-muted">What do you need?</legend>
-                      <div className="mt-5 flex flex-col gap-2">
+                      <legend className="t-h3 w-full">What do you need?</legend>
+                      <div className="mt-6 flex flex-col gap-3">
                         {KINDS.map((option) => (
                           <Choice
                             key={option.id}
@@ -336,8 +338,8 @@ export function Intake({ open, onClose }: { open: boolean; onClose: () => void }
 
                   {step === 1 ? (
                     <fieldset>
-                      <legend className="text-[15px] text-paper-muted">When do you need it?</legend>
-                      <div className="mt-5 flex flex-col gap-2">
+                      <legend className="t-h3 w-full">When do you need it?</legend>
+                      <div className="mt-6 flex flex-col gap-3">
                         {TIMING.map((option) => (
                           <Choice
                             key={option.id}
@@ -383,13 +385,13 @@ export function Intake({ open, onClose }: { open: boolean; onClose: () => void }
                         value={details.current}
                         onChange={(v) => setDetails((d) => ({ ...d, current: v }))}
                       />
-                      <label className="flex flex-col gap-1.5">
+                      <label className="flex flex-col gap-2">
                         <span className={LABEL}>Anything else we should know? (optional)</span>
                         <textarea
                           rows={4}
                           value={details.notes}
                           onChange={(e) => setDetails((d) => ({ ...d, notes: e.target.value }))}
-                          className={`${UNDERLINE} resize-none ${RULE_REST}`}
+                          className={`${BOX} resize-none py-3 ${BOX_REST}`}
                         />
                       </label>
                     </div>
@@ -397,11 +399,11 @@ export function Intake({ open, onClose }: { open: boolean; onClose: () => void }
 
                   {step === 3 ? (
                     <div>
-                      <p className="text-[15px] leading-relaxed text-paper-muted">
+                      <p className="t-body">
                         Here’s what you told us. The button below opens it as an email in your own email app, all
                         filled in. Nothing reaches us until you hit send.
                       </p>
-                      <dl className="mt-6 divide-y divide-rule-paper border-y border-rule-paper">
+                      <dl className="mt-6 divide-y divide-ink/25 border-y-2 border-ink">
                         {[
                           ["Business", details.business],
                           ["Name", details.name],
@@ -410,19 +412,24 @@ export function Intake({ open, onClose }: { open: boolean; onClose: () => void }
                           ["Timing", TIMING.find((t) => t.id === timing)?.label ?? "—"],
                           ["Current site", details.current || "—"],
                         ].map(([term, value]) => (
-                          <div key={term} className="flex items-baseline gap-6 py-3">
-                            <dt className="w-32 shrink-0 text-[13px] font-medium text-paper-muted">{term}</dt>
-                            <dd className="min-w-0 break-words text-[15px] text-paper-ink">{value}</dd>
+                          <div key={term} className="flex flex-col gap-1 py-3.5 sm:flex-row sm:items-baseline sm:gap-6">
+                            <dt className="t-small shrink-0 text-ink/75 sm:w-32">{term}</dt>
+                            <dd className="min-w-0 break-words text-[16px] font-medium">{value}</dd>
                           </div>
                         ))}
                       </dl>
 
                       {emailRequested ? (
-                        <p className="mt-6 flex items-start gap-2 text-[15px] text-draft-ink" role="status">
-                          {/* Top-aligned to the first 24px line: the message runs to three or four lines on a phone. */}
-                          <Check size={16} aria-hidden className="mt-1 shrink-0" />
-                          Your email app should’ve opened. If it didn’t, email us at {STUDIO_EMAIL}. Once it’s sent, one
-                          of us will write back.
+                        <p
+                          className="t-body mt-6 flex items-start gap-3 bg-ember p-4 font-medium text-ink"
+                          role="status"
+                        >
+                          {/* Top-aligned to the first line: the message runs to three or four lines on a phone. */}
+                          <Check size={18} strokeWidth={3} aria-hidden className="mt-[3px] shrink-0" />
+                          <span>
+                            Your email app should’ve opened. If it didn’t, email us at {STUDIO_EMAIL}. Once it’s sent,
+                            one of us will write back.
+                          </span>
                         </p>
                       ) : null}
                     </div>
@@ -431,7 +438,7 @@ export function Intake({ open, onClose }: { open: boolean; onClose: () => void }
               </AnimatePresence>
             </div>
 
-            <div className="sticky bottom-0 flex items-center justify-between gap-4 border-t border-rule-paper bg-paper px-6 py-5 md:px-8">
+            <div className="sticky bottom-0 flex items-center justify-between gap-4 border-t-2 border-ink bg-bone px-6 py-4 md:px-8">
               <button
                 type="button"
                 onClick={() => {
@@ -442,27 +449,22 @@ export function Intake({ open, onClose }: { open: boolean; onClose: () => void }
                   goTo(Math.max(0, step - 1));
                 }}
                 disabled={step === 0}
-                className="inline-flex min-h-11 shrink-0 items-center gap-2 text-[14px] font-medium text-paper-muted enabled:hover:text-paper-ink disabled:opacity-40"
+                className="inline-flex min-h-11 shrink-0 items-center gap-2 text-[16px] font-semibold underline decoration-2 underline-offset-6 enabled:hover:decoration-[3px] disabled:no-underline disabled:opacity-40"
               >
-                <ArrowLeft size={14} aria-hidden />
+                <ArrowLeft size={16} strokeWidth={2.5} aria-hidden />
                 Back
               </button>
 
               {step < 3 ? (
-                <Magnetic
-                  tone="ink"
-                  onClick={next}
-                  disabled={!canAdvance}
-                  className={canAdvance ? "" : "cursor-not-allowed opacity-40"}
-                >
+                <Button onClick={next} disabled={!canAdvance}>
                   Continue
-                  <ArrowRight size={14} aria-hidden />
-                </Magnetic>
+                  <ArrowRight size={18} strokeWidth={2.5} aria-hidden />
+                </Button>
               ) : (
-                <Magnetic tone="ink" href={mailto} onClick={openEmail}>
+                <Button href={mailto} onClick={openEmail}>
                   Open email draft
-                  <ArrowRight size={14} aria-hidden />
-                </Magnetic>
+                  <ArrowRight size={18} strokeWidth={2.5} aria-hidden />
+                </Button>
               )}
             </div>
           </motion.div>
@@ -474,10 +476,11 @@ export function Intake({ open, onClose }: { open: boolean; onClose: () => void }
 
 /*
  * A choice row. The native radio stays in the DOM (visually hidden, still in
- * the tab order, still driven by arrow keys), and the row draws its own box.
+ * the tab order, still driven by arrow keys), and the row draws its own box: a
+ * square with a 2px ink border.
  *
  * Selecting a row lays an ink block in from the left (450ms, settle) and drops
- * an ember rhombus into the box; deselecting lifts the block off with a quick
+ * an ember square into the box; deselecting lifts the block off with a quick
  * fade, then snaps its width back to zero out of sight. Transform and opacity
  * only. The text flips to bone as the ink arrives under it and back once the
  * ink has mostly gone: a single delayed change each way, never a colour tween.
@@ -517,30 +520,25 @@ function Choice({
 }) {
   const fx = still ? NO_MOTION : checked ? ROW_IN : ROW_OUT;
   return (
-    <label className="relative flex cursor-pointer rounded-[2px] border border-rule-paper p-4 hover:border-paper-ink/40 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-paper-ink">
+    <label className="relative flex min-h-14 cursor-pointer border-2 border-ink p-4 has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-3 has-[:focus-visible]:outline-ink">
       <input type="radio" name={name} value={value} checked={checked} onChange={onSelect} className="sr-only" />
       <span
         aria-hidden
-        className={`absolute -inset-px origin-left rounded-[2px] bg-paper-ink ${checked ? "" : "[transform:scaleX(0)] opacity-0"}`}
+        className={`absolute -inset-[2px] origin-left bg-ink ${checked ? "" : "[transform:scaleX(0)] opacity-0"}`}
         style={fx.fill}
       />
       <span
-        className={`relative flex gap-4 ${note ? "items-start" : "items-center"} ${checked ? "text-bone" : "text-paper-ink"}`}
+        className={`relative flex gap-4 ${note ? "items-start" : "items-center"} ${checked ? "text-bone" : "text-ink"}`}
         style={fx.ink}
       >
-        <span aria-hidden className={`relative h-3.5 w-3.5 shrink-0 border border-current ${note ? "mt-[3px]" : ""}`}>
-          <span
-            className={`absolute inset-0 flex items-center justify-center ${checked ? "" : "opacity-0"}`}
-            style={fx.mark}
-          >
-            <IsoRhombus />
-          </span>
+        <span aria-hidden className={`relative grid h-5 w-5 shrink-0 place-items-center border-2 border-current ${note ? "mt-px" : ""}`}>
+          <span className={`block h-2 w-2 bg-ember ${checked ? "" : "opacity-0"}`} style={fx.mark} />
         </span>
         <span>
-          <span className="block text-[15px] font-medium">{label}</span>
+          <span className="block text-[16px] font-semibold">{label}</span>
           {/* text-pretty: a span misses the base p rule, and two notes left "you" and "call" alone on a phone. */}
           {note ? (
-            <span className={`mt-1 block text-pretty text-sm ${checked ? "text-ash" : "text-paper-muted"}`} style={fx.ink}>
+            <span className={`mt-1 block text-pretty text-[14px] ${checked ? "text-bone-dim" : "text-ink/75"}`} style={fx.ink}>
               {note}
             </span>
           ) : null}
@@ -550,19 +548,20 @@ function Choice({
   );
 }
 
-const LABEL = "text-[13px] font-medium text-paper-muted";
+const LABEL = "text-[14px] font-semibold";
 
 /*
- * Underline-only fields. At rest the 1.5px rule is half-strength ink: 3.3:1 on
- * paper, enough to read as a field (40% would be 2.5:1, under the 3:1 a control
- * boundary needs). Focus takes it to full ink and doubles it with a hard shadow
- * beneath (a static change, nothing animates), so the field you are in is
- * unmistakable without a box drawn round it. 16px text also keeps iOS from
+ * Boxed fields: white inside a 2px ink border, 52px tall, square. White on bone
+ * reads as a field you can write in, and the ink border is 15.6:1, far past the
+ * 3:1 a control boundary needs. Focus draws the page's 3px ink ring (the global
+ * :focus-visible rule), so nothing here sets an outline. An error thickens the
+ * border with an inset ember frame (graphics only, never text) and the message
+ * under it is ink on an ember block (4.95:1). 16px text also keeps iOS from
  * zooming the page on focus.
  */
-const UNDERLINE =
-  "w-full rounded-none border-0 border-b-[1.5px] bg-transparent px-0 py-2 text-[16px] text-paper-ink outline-hidden focus:border-paper-ink focus:shadow-[0_1.5px_0_currentColor]";
-const RULE_REST = "border-paper-ink/50";
+const BOX = "w-full min-h-[52px] rounded-none border-2 bg-white px-3.5 text-[16px] text-ink";
+const BOX_REST = "border-ink";
+const BOX_ERROR = "border-ink shadow-[inset_0_0_0_3px_var(--color-ember)]";
 
 function Field({
   label,
@@ -584,8 +583,8 @@ function Field({
   // The error sits outside the <label>, so it is the field's description only.
   // Inside, it became part of the name too, and was read out twice.
   return (
-    <div className="flex flex-col gap-1.5">
-      <label className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-2">
+      <label className="flex flex-col gap-2">
         <span className={LABEL}>{label}</span>
         <input
           type={type}
@@ -594,11 +593,11 @@ function Field({
           onChange={(e) => onChange(e.target.value)}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : undefined}
-          className={`${UNDERLINE} ${error ? "border-ember-ink" : RULE_REST}`}
+          className={`${BOX} ${error ? BOX_ERROR : BOX_REST}`}
         />
       </label>
       {error ? (
-        <span id={errorId} className="text-[13px] text-ember-ink">
+        <span id={errorId} className="t-small self-start bg-ember px-2.5 py-1 font-semibold text-ink">
           {error}
         </span>
       ) : null}
@@ -609,12 +608,12 @@ function Field({
 /*
  * The send-off: one burst when the email draft opens. canvas-confetti is
  * fetched on that click and never before. It draws on its own temporary canvas,
- * in a worker where the browser allows, while the Stage sits paused behind the
+ * in a worker where the browser allows, behind the
  * drawer, and the canvas is gone 3s later.
  */
 
-// The sheet's inks: paper-ink, ember, draft-ink, ember-ink.
-const COLOURS = ["#14120f", "#e9a568", "#2f5f74", "#9a4512"];
+// The poster's inks: ink, ember, bone, cobalt.
+const COLOURS = ["#15120f", "#ef4623", "#f1eadb", "#1747d4"];
 
 // A beam and an iso rhombus (the cube's top face). Given no matrix,
 // canvas-confetti fits a path itself by probing a 500×500 grid with

@@ -1,0 +1,28 @@
+/*
+  Closing (ember): the poster line, the ask, and a solid ink cube cropped by
+  the bottom-right corner. The cube is 43vw wide at the mock's size and stops
+  growing at 760px (about a 1770 screen), keeping the same crop: it hangs 9.3%
+  of its width off the right edge and 30% off the bottom. Phones: 86vw wide,
+  hanging further off.
+
+  The cube arrives by rising out of the bottom edge. Transform and opacity only,
+  once, when the block scrolls in; none of it under reduced motion.
+*/
+
+.cube {
+  --w: min(43vw, 760px);
+  position: absolute;
+  z-index: 1;
+  width: var(--w);
+  right: calc(var(--w) * -0.093);
+  bottom: calc(var(--w) * -0.302);
+  pointer-events: none;
+}
+
+@media (max-width: 639px) {
+  .cube {
+    --w: 86vw;
+    right: -22vw;
+    bottom: -30vw;
+  }
+}

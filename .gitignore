@@ -40,3 +40,6 @@ next-env.d.ts
 *.swp
 *.swo
 *~
+
+# local media kit for the Penner demo (stock downloads and generated clips)
+/penner-flow-kit/

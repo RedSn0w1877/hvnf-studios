@@ -1,199 +1,233 @@
-"use client";
-
-import { useRef, type CSSProperties, type MouseEvent, type ReactNode } from "react";
-import { motion, useMotionValue, useReducedMotion, useSpring } from "motion/react";
+import type { MouseEvent, ReactNode } from "react";
 
 /**
- * Shared primitives. Every animation on the site is transform or opacity only,
- * so the compositor does the work and scrolling stays smooth. Entrances are not
- * in here any more: they are CSS (data-lock, .load-a/b/c in globals.css) driven
- * by one shared observer (lib/lock.ts).
- */
-
-export const SETTLE = [0.22, 1, 0.36, 1] as const;
-
-type HeadingTag = "h1" | "h2" | "h3";
-
-/**
- * A section heading, printed once, in a wrapper div.
+ * Shared primitives for the "Ember Drawing" look. All of them are plain markup
+ * over classes in globals.css: no hooks, no client JS, so they work in server
+ * and client components alike. Anything that moves is transform or opacity.
  *
- *  - trigger="load": no animation of any kind. Use it for the h1, which has to
- *    be on screen, static, from first paint (it is the LCP element).
- *  - trigger="view": the wrapper carries data-lock="b" and slides in with the
- *    axis lock when it reaches the screen, after `delay` ms.
- *
- * `className` styles the heading. Placement in a parent grid or outer spacing
- * goes on `wrapperClassName`. `tone` changes nothing any more (it coloured the
- * old registration ghost); it stays so no call site has to change.
+ *   <Button>        the square ink button (56px, or 46px with size="sm")
+ *   <TextLink>      the semibold underlined link, 44px tall
+ *   <NumberSquare>  the ink square with a bone numeral (the promises' 1 to 4)
+ *   <Section>       a colour block: sets the field, text colour and focus ring
+ *   <SectionHead>   the big h2 on the left with one line beside it
+ *   <ArrowDown>, <ArrowOut>   the two arrows, drawn to sit beside text
  */
-export function RegisteredHeading({
-  as: Tag = "h2",
-  trigger,
-  className,
-  wrapperClassName,
-  delay,
-  id,
-  children,
-}: {
-  as?: HeadingTag;
-  trigger: "load" | "view";
-  tone?: "dark" | "paper";
-  className?: string;
-  wrapperClassName?: string;
-  /** Entrance delay in ms for trigger="view" (sets --ld). */
-  delay?: number;
-  id?: string;
-  children: ReactNode;
-}) {
-  const style = delay ? ({ "--ld": `${delay}ms` } as CSSProperties) : undefined;
-  return (
-    <div className={wrapperClassName} data-lock={trigger === "view" ? "b" : undefined} style={style}>
-      <Tag id={id} className={className}>
-        {children}
-      </Tag>
-    </div>
-  );
-}
 
-/**
- * The small ember diamond the intake uses as its selected marker. 6×7,
- * decorative. On paper it switches to ember-ink, the only orange that reads
- * there. `className` is for placement (margins, alignment), not colour.
- */
-export function IsoRhombus({ tone = "dark", className }: { tone?: "dark" | "paper"; className?: string }) {
-  const colour = tone === "paper" ? "text-ember-ink" : "text-ember";
-  return (
-    <svg
-      aria-hidden
-      focusable="false"
-      viewBox="0 0 6 7"
-      width="6"
-      height="7"
-      fill="currentColor"
-      className={className ? `inline-block shrink-0 ${colour} ${className}` : `inline-block shrink-0 ${colour}`}
-    >
-      <path d="M3 0 6 3.5 3 7 0 3.5Z" />
-    </svg>
-  );
-}
+const cx = (...parts: (string | false | null | undefined)[]) => parts.filter(Boolean).join(" ");
 
-type MagneticProps = {
+/* ── Button ──────────────────────────────────────────────────────────────── */
+
+export type ButtonProps = {
   children: ReactNode;
-  onClick?: (event: MouseEvent<HTMLElement>) => void;
+  /** With href it renders an <a>; without, a <button type="button">. */
   href?: string;
-  className?: string;
-  /** "ember"/"solid": the filled Beam. "link"/"ghost": text with an underline. */
-  variant?: "ember" | "solid" | "link" | "ghost";
-  /** Heights 40 / 48 / 56px. */
-  size?: "sm" | "md" | "lg";
-  /** "ember" on dark surfaces; "ink" (paper-ink fill, bone text) on paper. */
-  tone?: "ember" | "ink";
-  ariaLabel?: string;
+  onClick?: (event: MouseEvent<HTMLElement>) => void;
+  /** "md" 56px tall (default). "sm" 46px, for the nav. */
+  size?: "md" | "sm";
+  /**
+   * "ink" (default): ink block, bone text. For ember, bone and cobalt ground.
+   * "ember" / "bone": for ink ground, where an ink block would vanish. Ink text.
+   */
+  tone?: "ink" | "ember" | "bone";
+  /** Full width of its container (the phone layout's under-the-thumb button). */
+  block?: boolean;
   disabled?: boolean;
+  className?: string;
+  ariaLabel?: string;
+  /** Links only. */
+  target?: string;
+  rel?: string;
 };
 
 /**
- * The Beam: the site's one button, as a <button> or, with href, an <a>.
+ * The one button. Square corners, a flat fill, and a flat overlay that fades in
+ * on hover and keyboard focus (CSS only, in globals.css under .btn).
  *
- * A chamfered fill (the clip lives on the fill span, so focus rings are never
- * clipped) that lifts flat on hover or keyboard focus; the link variant grows an
- * ember underline instead. All of it is CSS in globals.css: the control itself
- * never moves, and no JS runs while a pointer is over it.
+ *   <Button onClick={onStart}>Ask for a preview</Button>
+ *   <Button size="sm" onClick={onStart}>Ask for a preview</Button>
+ *   <Button onClick={onStart} className="max-sm:w-full">Ask for a preview</Button>
  */
-export function Magnetic({
+export function Button({
   children,
-  onClick,
   href,
-  className,
-  variant = "ember",
+  onClick,
   size = "md",
-  tone = "ember",
-  ariaLabel,
+  tone = "ink",
+  block = false,
   disabled = false,
-}: MagneticProps) {
-  const solid = variant === "ember" || variant === "solid";
-  const classes = className ? `beam ${className}` : "beam";
-  const kind = solid ? "solid" : "link";
-
-  const inner = (
-    <>
-      {solid ? <span aria-hidden className="beam-fill" /> : null}
-      <span className="relative inline-flex items-center gap-2.5">
-        {children}
-        {solid ? null : <span aria-hidden className="beam-ul" />}
-      </span>
-    </>
-  );
-
+  className,
+  ariaLabel,
+  target,
+  rel,
+}: ButtonProps) {
+  const shared = {
+    className: cx("btn", className),
+    "data-size": size,
+    "data-tone": tone,
+    "data-block": block ? "" : undefined,
+    "aria-label": ariaLabel,
+    onClick,
+  };
   if (href) {
     return (
-      <a
-        href={href}
-        onClick={onClick}
-        className={classes}
-        aria-label={ariaLabel}
-        data-variant={kind}
-        data-size={size}
-        data-tone={tone}
-      >
-        {inner}
+      <a href={href} target={target} rel={rel} {...shared}>
+        {children}
       </a>
     );
   }
-
   return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onClick}
-      className={classes}
-      aria-label={ariaLabel}
-      data-variant={kind}
-      data-size={size}
-      data-tone={tone}
-    >
-      {inner}
+    <button type="button" disabled={disabled} {...shared}>
+      {children}
     </button>
   );
 }
 
-/** The spec's name for Magnetic. Same component, same props. */
-export const Beam = Magnetic;
+/* ── Text link ───────────────────────────────────────────────────────────── */
+
+export type TextLinkProps = {
+  children: ReactNode;
+  href: string;
+  onClick?: (event: MouseEvent<HTMLAnchorElement>) => void;
+  /** Opens in a new tab and says so to screen readers. */
+  external?: boolean;
+  className?: string;
+};
 
 /**
- * Card that tilts a little toward the cursor. Pure transform, no layout work.
- * On its way out: Work's stack stops using it, and it goes once nothing imports it.
+ * Semibold text with a 2px underline and a 44px tap target. It takes the text
+ * colour around it. Change the underline colour with a decoration-* utility
+ * (the demo tiles use their own brand colour).
+ *
+ *   <TextLink href="#work">See examples <ArrowDown /></TextLink>
+ *   <TextLink href={url} external>Visit Kroma Labs <ArrowOut /></TextLink>
  */
-export function TiltCard({ children, className }: { children: ReactNode; className?: string }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const reduce = useReducedMotion();
-  const rx = useMotionValue(0);
-  const ry = useMotionValue(0);
-  const springX = useSpring(rx, { stiffness: 120, damping: 18 });
-  const springY = useSpring(ry, { stiffness: 120, damping: 18 });
-
-  const onMove = (event: MouseEvent<HTMLDivElement>) => {
-    if (reduce || !window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
-    const box = event.currentTarget.getBoundingClientRect();
-    const px = (event.clientX - box.left) / box.width - 0.5;
-    const py = (event.clientY - box.top) / box.height - 0.5;
-    ry.set(px * 6);
-    rx.set(-py * 6);
-  };
-  const reset = () => {
-    rx.set(0);
-    ry.set(0);
-  };
-
+export function TextLink({ children, href, onClick, external = false, className }: TextLinkProps) {
   return (
-    <motion.div
-      ref={ref}
-      onMouseMove={onMove}
-      onMouseLeave={reset}
-      style={reduce ? undefined : { rotateX: springX, rotateY: springY, transformPerspective: 1200 }}
-      className={className}
+    <a
+      href={href}
+      onClick={onClick}
+      className={cx("link", className)}
+      target={external ? "_blank" : undefined}
+      rel={external ? "noreferrer" : undefined}
     >
       {children}
-    </motion.div>
+      {external ? <span className="sr-only"> (opens in a new tab)</span> : null}
+    </a>
+  );
+}
+
+/* ── Number square ───────────────────────────────────────────────────────── */
+
+/**
+ * The promises' number: an ink square with a bone Bricolage numeral. The hero
+ * callouts and the "What you get" cells use the same 1 to 4, so the square is
+ * what ties a callout to its promise. Decorative by default (aria-hidden): the
+ * list order already carries the number.
+ *
+ *   <NumberSquare n={1} />             36px
+ *   <NumberSquare n={1} size="sm" />   28px
+ *   <NumberSquare n={1} size="xs" />   24px (the phone hero key)
+ *   <NumberSquare n={1} tone="bone" /> bone square, ink numeral, for ink ground
+ */
+export function NumberSquare({
+  n,
+  size = "md",
+  tone = "ink",
+  className,
+}: {
+  n: number;
+  size?: "md" | "sm" | "xs";
+  tone?: "ink" | "bone";
+  className?: string;
+}) {
+  return (
+    <b aria-hidden className={cx("num", className)} data-size={size} data-tone={tone}>
+      {n}
+    </b>
+  );
+}
+
+/* ── Section shells ──────────────────────────────────────────────────────── */
+
+export type Surface = "ember" | "ink" | "bone" | "cobalt";
+
+/**
+ * A full-bleed colour block. data-surface gives it the field, the text colour
+ * that passes on it, the focus ring that shows on it and a selection colour.
+ * It adds no padding: use px-g for the page gutter and your own top and bottom.
+ *
+ *   <Section id="method" surface="cobalt" band className="px-g pt-[72px] max-sm:pt-14">
+ *
+ * `band` is the 8px ink band along the top, for where the block above is a
+ * different colour.
+ */
+export function Section({
+  as: Tag = "section",
+  id,
+  surface,
+  band = false,
+  className,
+  children,
+}: {
+  as?: "section" | "header" | "footer" | "div";
+  id?: string;
+  surface: Surface;
+  band?: boolean;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <Tag id={id} data-surface={surface} className={cx(band && "band", className)}>
+      {children}
+    </Tag>
+  );
+}
+
+/**
+ * A section's heading row: the 104px h2 on the left, one line of supporting
+ * copy on the right, sharing a baseline. One column on phones.
+ *
+ *   <SectionHead title="How it works">If you don’t like the preview, …</SectionHead>
+ */
+export function SectionHead({
+  title,
+  children,
+  className,
+}: {
+  title: ReactNode;
+  /** The line beside the heading. */
+  children?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cx(
+        "grid grid-cols-[minmax(0,7fr)_minmax(0,5fr)] items-end gap-8 max-sm:grid-cols-1 max-sm:gap-3.5",
+        className,
+      )}
+    >
+      <h2 className="t-h2">{title}</h2>
+      {children ? <p className="t-sub max-w-[22em] pb-[0.5em]">{children}</p> : null}
+    </div>
+  );
+}
+
+/* ── Arrows ──────────────────────────────────────────────────────────────── */
+
+/** Down arrow, 0.95em, in the text colour. For "See examples". */
+export function ArrowDown({ className }: { className?: string }) {
+  return (
+    <svg className={cx("ico", className)} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden focusable="false">
+      <path d="M8 2v11M3 8.5 8 13.5l5-5" />
+    </svg>
+  );
+}
+
+/** Up-and-out arrow, 0.95em, in the text colour. For links that leave the site. */
+export function ArrowOut({ className }: { className?: string }) {
+  return (
+    <svg className={cx("ico", className)} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden focusable="false">
+      <path d="M4 12 12 4M5.5 4H12v6.5" />
+    </svg>
   );
 }
