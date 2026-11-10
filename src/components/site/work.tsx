@@ -53,9 +53,18 @@ type Build = {
 };
 
 const BUILDS: readonly Build[] = [
-  // The auto repair card goes first, right here, once its demo is finished: run
-  // posters.mjs for it, then add one object with `shot: SHOTS.<its id>`. The
-  // orbit, the stack and the copy all size themselves to the count.
+  // A new card is one object here plus its posters (posters.mjs writes them and the
+  // SHOTS manifest). The orbit, the stack and the copy all size themselves to the count.
+  {
+    id: "penner",
+    title: "Penner & Daughters",
+    sector: "Auto repair",
+    blurb: "Pick the noise your car is making and hear it. Then approve the repair estimate one line at a time.",
+    href: "https://redsn0w1877.github.io/penner-and-daughters/",
+    poster: "from-[#e4e8ed] via-[#dce1e7] to-[#cfd6de]",
+    shot: SHOTS.penner,
+    accent: "#1B44A3",
+  },
   {
     id: "kroma",
     title: "Kroma Labs",

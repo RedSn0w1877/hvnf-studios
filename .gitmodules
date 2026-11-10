@@ -7,3 +7,6 @@
 [submodule "aetheria-botanicals"]
 	path = aetheria-botanicals
 	url = https://github.com/RedSn0w1877/aetheria-botanicals.git
+[submodule "penner-and-daughters"]
+	path = penner-and-daughters
+	url = https://github.com/RedSn0w1877/penner-and-daughters.git

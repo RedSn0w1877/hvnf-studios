@@ -20,6 +20,12 @@ import kromaDesktop1024Webp from "./kroma-desktop-1024.webp";
 import kromaDesktop640Webp from "./kroma-desktop-640.webp";
 import kromaPhone390Avif from "./kroma-phone-390.avif";
 import kromaPhone390Webp from "./kroma-phone-390.webp";
+import pennerDesktop1024Avif from "./penner-desktop-1024.avif";
+import pennerDesktop640Avif from "./penner-desktop-640.avif";
+import pennerDesktop1024Webp from "./penner-desktop-1024.webp";
+import pennerDesktop640Webp from "./penner-desktop-640.webp";
+import pennerPhone390Avif from "./penner-phone-390.avif";
+import pennerPhone390Webp from "./penner-phone-390.webp";
 
 /**
  * One encoded file. Its size is written here by posters.mjs, not read off the
@@ -91,6 +97,26 @@ export const SHOTS = {
       ],
       webp: [
         { file: kromaPhone390Webp, width: 390, height: 488 },
+      ],
+    },
+  },
+  penner: {
+    desktop: {
+      avif: [
+        { file: pennerDesktop640Avif, width: 640, height: 400 },
+        { file: pennerDesktop1024Avif, width: 1024, height: 640 },
+      ],
+      webp: [
+        { file: pennerDesktop640Webp, width: 640, height: 400 },
+        { file: pennerDesktop1024Webp, width: 1024, height: 640 },
+      ],
+    },
+    phone: {
+      avif: [
+        { file: pennerPhone390Avif, width: 390, height: 488 },
+      ],
+      webp: [
+        { file: pennerPhone390Webp, width: 390, height: 488 },
       ],
     },
   },

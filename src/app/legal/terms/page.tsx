@@ -28,8 +28,8 @@ export default function TermsPage() {
           heading: "Status of the sample sites",
           body: (
             <p>
-              The businesses presented as samples on this site, including Kroma Labs, Apex Dynamics and Aetheria
-              Botanicals, are fictional and were created solely to demonstrate our capabilities. They do not denote
+              The businesses presented as samples on this site, including Penner &amp; Daughters Auto Repair, Kroma Labs,
+              Apex Dynamics and Aetheria Botanicals, are fictional and were created solely to demonstrate our capabilities. They do not denote
               trading entities, no goods or services presented on them are available for purchase, and all figures,
               specifications and availability stated within them are illustrative only.
             </p>
