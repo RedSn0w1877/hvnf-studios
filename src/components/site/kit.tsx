@@ -217,7 +217,7 @@ export function SectionHead({
 /** Down arrow, 0.95em, in the text colour. For "See examples". */
 export function ArrowDown({ className }: { className?: string }) {
   return (
-    <svg className={cx("ico", className)} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden focusable="false">
+    <svg className={cx("ico ico-down", className)} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden focusable="false">
       <path d="M8 2v11M3 8.5 8 13.5l5-5" />
     </svg>
   );
@@ -226,7 +226,7 @@ export function ArrowDown({ className }: { className?: string }) {
 /** Up-and-out arrow, 0.95em, in the text colour. For links that leave the site. */
 export function ArrowOut({ className }: { className?: string }) {
   return (
-    <svg className={cx("ico", className)} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden focusable="false">
+    <svg className={cx("ico ico-out", className)} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden focusable="false">
       <path d="M4 12 12 4M5.5 4H12v6.5" />
     </svg>
   );

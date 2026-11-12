@@ -129,13 +129,17 @@
   padding: 0;
 }
 
+/* Each label is a link to its promise (hero.tsx). */
 .card {
   display: grid;
   grid-template-columns: 24px minmax(0, 1fr);
   gap: 9px;
+  color: inherit;
   font-size: 14px;
   font-weight: 600;
   line-height: 1.25;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .n {
@@ -153,10 +157,23 @@
 
 .t {
   padding-top: 3px;
+  /* Balanced, so label 3 never leaves "you" alone on its second line. */
+  text-wrap: balance;
 }
 
 .dbr {
   display: none;
+}
+
+/* Phones and tablets: the key rows are tap targets, 44px each, so the gap between them goes. */
+@media (max-width: 1023px) {
+  .tags {
+    gap: 0;
+  }
+  .card {
+    min-height: 44px;
+    align-content: center;
+  }
 }
 
 /* Phones. */
@@ -296,13 +313,31 @@
   }
 }
 
-/* Hovering a label lights its part of the cube (a bone copy of the beams fades in). */
-@media (hover: hover) and (min-width: 1280px) {
-  .frame:has(.tag[data-part="top"]:hover) .stage :global(.cube-hl[data-part="top"]),
-  .frame:has(.tag[data-part="left"]:hover) .stage :global(.cube-hl[data-part="left"]),
-  .frame:has(.tag[data-part="right"]:hover) .stage :global(.cube-hl[data-part="right"]),
-  .frame:has(.tag[data-part="brace"]:hover) .stage :global(.cube-hl[data-part="brace"]) {
+/*
+  Pointing at a label, or tabbing to it, lights its part of the cube (a bone
+  copy of the beams fades in) and underlines its words. Below 1280 the part
+  carries the numbered disc instead of a leader, and lights the same way.
+*/
+.frame:has(.tag[data-part="top"] .card:focus-visible) .stage :global(.cube-hl[data-part="top"]),
+.frame:has(.tag[data-part="left"] .card:focus-visible) .stage :global(.cube-hl[data-part="left"]),
+.frame:has(.tag[data-part="right"] .card:focus-visible) .stage :global(.cube-hl[data-part="right"]),
+.frame:has(.tag[data-part="brace"] .card:focus-visible) .stage :global(.cube-hl[data-part="brace"]) {
+  opacity: 1;
+}
+.card:focus-visible .t {
+  text-decoration: underline 2px;
+  text-underline-offset: 3px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .frame:has(.tag[data-part="top"] .card:hover) .stage :global(.cube-hl[data-part="top"]),
+  .frame:has(.tag[data-part="left"] .card:hover) .stage :global(.cube-hl[data-part="left"]),
+  .frame:has(.tag[data-part="right"] .card:hover) .stage :global(.cube-hl[data-part="right"]),
+  .frame:has(.tag[data-part="brace"] .card:hover) .stage :global(.cube-hl[data-part="brace"]) {
     opacity: 1;
+  }
+  .card:hover .t {
+    text-decoration: underline 2px;
+    text-underline-offset: 3px;
   }
 }
 

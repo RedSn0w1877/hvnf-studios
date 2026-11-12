@@ -18,6 +18,9 @@ import s from "./hero.module.css";
  * labels are placed with the same maths as the SVG and stay glued to it at any
  * width. 1280 and up: leader lines and bone labels. Below that, a numbered key
  * under the buttons and numbered discs on the cube.
+ *
+ * Every label is a link to the promise it names further down ("What you get"),
+ * and pointing at it or tabbing to it lights its part of the cube.
  */
 
 // The cube's frame in page units (a unit is 1% of the hero's width): 58 wide,
@@ -87,12 +90,13 @@ export function Hero({ onStart }: { onStart: () => void }) {
                   data-align={align}
                   style={{ "--lx": x - 100, "--ly": y, "--i": i } as CSSProperties}
                 >
-                  <div className={s.card}>
+                  {/* Each label is the promise's own heading, so it jumps to it (care.tsx, #promise-N). */}
+                  <a href={`#promise-${i + 1}`} className={s.card}>
                     <b className={s.n} aria-hidden>
                       {i + 1}
                     </b>
                     <span className={s.t}>{LABELS[part]}</span>
-                  </div>
+                  </a>
                 </li>
               );
             })}

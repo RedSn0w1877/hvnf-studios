@@ -37,9 +37,9 @@ const BUILDS: readonly Build[] = [
     blurb: "Pick the noise your car is making and hear it. Then approve the repair estimate one line at a time.",
     href: "https://redsn0w1877.github.io/penner-and-daughters/",
     shot: SHOTS.penner,
-    bg: "#DDE3E9",
-    fg: "#15120F",
-    line: "#1F3FA6",
+    bg: "#C9CDD1",
+    fg: "#121417",
+    line: "#1B44A3",
   },
   {
     id: "kroma",
@@ -57,23 +57,23 @@ const BUILDS: readonly Build[] = [
     title: "Apex Dynamics",
     sector: "Running shoes",
     blurb:
-      "The trail shoe pulls apart into its five layers. Further down, drag along the hills of a trail run and watch the numbers change.",
+      "Drag a runner along 30 km of hills and watch the heart rate climb, then cut the shoe open from heel to toe.",
     href: "https://redsn0w1877.github.io/apex-dynamics/",
     shot: SHOTS.apex,
-    bg: "#0A0A09",
-    fg: "#F1EADB",
+    bg: "#0B0C0A",
+    fg: "#F2F3EC",
     line: "#CCFF00",
   },
   {
     id: "aetheria",
     title: "Aetheria Botanicals",
     sector: "Perfume",
-    blurb: "Mix your own scent and the liquid in the bottle changes color to match. The glass catches the light as it turns.",
+    blurb: "Pick a top, heart and base note and the drawn bottle fills with the color of the perfume you just made.",
     href: "https://redsn0w1877.github.io/aetheria-botanicals/",
     shot: SHOTS.aetheria,
-    bg: "#F3EFE7",
-    fg: "#15120F",
-    line: "#A88243",
+    bg: "#C7A982",
+    fg: "#1E150D",
+    line: "#8A3320",
   },
 ];
 
@@ -150,10 +150,10 @@ export function Work() {
                 <Still shot={build.shot} sizes={feature ? SIZES_FEATURE : SIZES_TILE} />
               </a>
               <div
-                className={`flex flex-1 flex-col px-7 pb-5 pt-[18px] max-sm:px-g max-sm:pb-7 ${feature ? "lg:w-[320px] lg:flex-none lg:px-8 lg:pb-8 lg:pt-12" : ""}`}
+                className={`flex flex-1 flex-col px-g pb-5 pt-[18px] max-sm:pb-7 ${feature ? "lg:w-[320px] lg:flex-none lg:px-8 lg:pb-8 lg:pt-12" : ""}`}
               >
                 <p className="t-small font-semibold">{build.sector}</p>
-                <h3 className={`t-h3 mt-1.5 text-[30px] leading-none ${feature ? "lg:text-[40px]" : ""}`}>{build.title}</h3>
+                <h3 className={`t-h3 mt-1.5 leading-none ${feature ? "lg:text-[40px]" : ""}`}>{build.title}</h3>
                 <p className="mt-2.5 max-w-[34em] text-[15px] leading-normal">{build.blurb}</p>
                 <TextLink href={build.href} external className="mt-auto self-start pt-2 text-[15px] decoration-[var(--line)]">
                   Visit {build.title}

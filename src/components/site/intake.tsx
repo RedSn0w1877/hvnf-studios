@@ -10,6 +10,22 @@ import { Button } from "./kit";
 
 // The drawer's motion easing (the same curve as --ease-settle in globals.css).
 const SETTLE = [0.22, 1, 0.36, 1] as const;
+// The sheet's own curve (Ionic's drawer curve): quick off the mark, long soft landing.
+const DRAWER = [0.32, 0.72, 0, 1] as const;
+
+/*
+ * Timing. The sheet takes 420ms in and 260ms out (out is always faster: the
+ * visitor has already decided). A step change is 140ms out and 200ms in, so
+ * Continue answers in a third of a second, not the 800ms the two 400ms halves
+ * used to take. Every move is a transform string, not motion's x shorthand:
+ * motion 13 runs x on the main thread, while a transform runs on the
+ * compositor and stays smooth while the page is busy (the drawer's code has
+ * often only just loaded when it first opens).
+ */
+const SHEET_IN = { duration: 0.42, ease: DRAWER };
+const SHEET_OUT = { duration: 0.26, ease: DRAWER };
+const STEP_IN = { duration: 0.2, ease: SETTLE };
+const STEP_OUT = { duration: 0.14, ease: SETTLE };
 
 /**
  * Project intake.
@@ -162,7 +178,7 @@ export function Intake({ open, onClose }: { open: boolean; onClose: () => void }
     if (!node || !stepMoved.current) return;
     stepMoved.current = false;
     const sheet = panel.current;
-    // Only if nobody has moved on since: a Tab during the 400ms swap wins.
+    // Only if nobody has moved on since: a Tab during the step swap wins.
     const at = document.activeElement;
     if (!sheet || (at !== status.current && at !== document.body && at !== null)) return;
     const target =
@@ -251,18 +267,16 @@ export function Intake({ open, onClose }: { open: boolean; onClose: () => void }
             aria-label="Close"
             onClick={onClose}
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.4 }}
+            animate={{ opacity: 1, transition: { duration: 0.3, ease: "easeOut" } }}
+            exit={{ opacity: 0, transition: { duration: 0.2, ease: "easeOut" } }}
             className="absolute inset-0 h-full w-full cursor-default bg-ink/70"
           />
 
           <motion.div
             ref={panel}
-            initial={reduce ? { opacity: 0 } : { x: "100%" }}
-            animate={reduce ? { opacity: 1 } : { x: 0 }}
-            exit={reduce ? { opacity: 0 } : { x: "100%" }}
-            transition={{ duration: 0.6, ease: SETTLE }}
+            initial={reduce ? { opacity: 0 } : { transform: "translateX(100%)" }}
+            animate={reduce ? { opacity: 1, transition: { duration: 0.2 } } : { transform: "translateX(0%)", transition: SHEET_IN }}
+            exit={reduce ? { opacity: 0, transition: { duration: 0.15 } } : { transform: "translateX(100%)", transition: SHEET_OUT }}
             data-surface="bone"
             className="absolute inset-y-0 right-0 flex w-full max-w-xl flex-col overflow-y-auto border-l-8 border-ink"
           >
@@ -300,7 +314,7 @@ export function Intake({ open, onClose }: { open: boolean; onClose: () => void }
                     className="block h-full origin-left bg-ink"
                     initial={false}
                     animate={{ scaleX: i <= step ? 1 : 0 }}
-                    transition={still ? { duration: 0 } : { duration: 0.5, ease: SETTLE }}
+                    transition={still ? { duration: 0 } : { duration: 0.3, ease: SETTLE }}
                   />
                 </span>
               ))}
@@ -311,10 +325,9 @@ export function Intake({ open, onClose }: { open: boolean; onClose: () => void }
                 <motion.div
                   key={step}
                   ref={enterStep}
-                  initial={reduce ? { opacity: 0 } : { opacity: 0, x: 24 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={reduce ? { opacity: 0 } : { opacity: 0, x: -24 }}
-                  transition={{ duration: 0.4, ease: SETTLE }}
+                  initial={reduce ? { opacity: 0 } : { opacity: 0, transform: "translateX(16px)" }}
+                  animate={reduce ? { opacity: 1, transition: STEP_IN } : { opacity: 1, transform: "translateX(0px)", transition: STEP_IN }}
+                  exit={reduce ? { opacity: 0, transition: STEP_OUT } : { opacity: 0, transform: "translateX(-16px)", transition: STEP_OUT }}
                 >
                   {step === 0 ? (
                     <fieldset>
@@ -479,7 +492,7 @@ export function Intake({ open, onClose }: { open: boolean; onClose: () => void }
  * the tab order, still driven by arrow keys), and the row draws its own box: a
  * square with a 2px ink border.
  *
- * Selecting a row lays an ink block in from the left (450ms, settle) and drops
+ * Selecting a row lays an ink block in from the left (280ms, settle) and drops
  * an ember square into the box; deselecting lifts the block off with a quick
  * fade, then snaps its width back to zero out of sight. Transform and opacity
  * only. The text flips to bone as the ink arrives under it and back once the
@@ -489,8 +502,8 @@ type RowFx = Record<"fill" | "mark" | "ink", CSSProperties | undefined>;
 
 const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 const ROW_IN: RowFx = {
-  fill: { transition: `transform 450ms ${EASE}` },
-  mark: { transition: "opacity 200ms linear 150ms" },
+  fill: { transition: `transform 280ms ${EASE}` },
+  mark: { transition: "opacity 160ms linear 100ms" },
   ink: { transition: "color 0s linear 90ms" },
 };
 const ROW_OUT: RowFx = {

@@ -1,19 +1,26 @@
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, Instrument_Sans } from "next/font/google";
+import { Instrument_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import { liteScript } from "@/lib/device";
 import { SITE_URL } from "@/lib/studio";
 import "./globals.css";
 
-// Two families, latin only, one variable woff2 each, both preloaded.
+// Two families, latin only, one woff2 each, both preloaded (68 KB together).
 //
-// Bricolage Grotesque sets the display type (h1–h3, numerals, the payment bar)
-// at weight 800. It is loaded as the variable font because next/font only
-// allows extra axes on the variable file, and the opsz axis is the point: the
-// browser picks the tight display cut at headline sizes and the open text cut
-// in a 15px number square (font-optical-sizing is auto by default).
-const display = Bricolage_Grotesque({
-  subsets: ["latin"],
-  axes: ["opsz"],
+// Bricolage Grotesque sets the display type (h1–h3, numerals, the payment bar),
+// only ever at weight 800. Google serves it as one variable file with both its
+// axes, wght 200–800 and opsz 12–96: 77 KB, most of it weights this site never
+// draws. fonts/bricolage-grotesque-800.woff2 is that same latin file pinned to
+// wght 800 with fontTools' instancer, opsz kept (38 KB). The opsz axis is the
+// point of keeping it variable: the browser picks the tight display cut at
+// headline sizes and the open text cut in a 15px number square
+// (font-optical-sizing is auto by default).
+// Bricolage Grotesque is © 2022 The Bricolage Grotesque Project Authors, under
+// the SIL Open Font License 1.1, which allows this modified copy.
+const display = localFont({
+  src: "./fonts/bricolage-grotesque-800.woff2",
+  weight: "800",
+  style: "normal",
   display: "swap",
   variable: "--font-bricolage",
 });

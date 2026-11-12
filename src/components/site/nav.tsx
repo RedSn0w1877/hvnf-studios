@@ -15,19 +15,49 @@ const LINKS = [
  * The header, printed on the ember field at the top of the page: the mark and
  * name, the three section links, and the ink "Ask for a preview" button.
  *
- * It is part of the poster, not a bar that follows you: absolutely placed over
- * the top of the hero (which pads itself by --nav-h), with no scroll listener,
- * no observer and no state at rest.
+ * At the top it is part of the poster: absolutely placed over the top of the
+ * hero (which pads itself by --nav-h). Once the hero has scrolled away (all but
+ * the strip the bar itself would cover) it becomes the return bar: the same
+ * header, fixed, an ember strip with a 3px ink rule under it, dropped in from
+ * above (globals.css, .nav-bar[data-stuck]). So the way to ask for a preview,
+ * and the way back to each section, stays in reach for the four screens
+ * between the hero and the closing call. One IntersectionObserver on the hero
+ * decides it; it fires only when the hero's bottom edge crosses that line, so
+ * nothing runs at rest.
  *
  *  - 1024 and up: links in a row, button on the right.
  *  - 640 to 1023: the links fold into the menu; the button stays.
- *  - under 640: the menu button only. The sheet it opens covers the screen in
- *    ember and carries the links and the button, full width under the thumb.
+ *  - under 640: the menu button only at the top (the hero's own button is
+ *    right there). In the bar the button comes back beside it, as the one
+ *    action a phone needs mid-page, and the wordmark shortens to fit.
+ *    The sheet the menu opens covers the screen in ember and carries the
+ *    links and the button, full width under the thumb.
  */
 export function Nav({ onStart }: { onStart: () => void }) {
   const [open, setOpen] = useState(false);
+  const [stuck, setStuck] = useState(false);
   const header = useRef<HTMLElement>(null);
   const menuButton = useRef<HTMLButtonElement>(null);
+
+  // The bar is on while the hero is above the bar's line (no more than the
+  // bar's own height of it left on screen). That line matters: a jump to
+  // "Examples" stops 64px below the top (scroll-padding-top in globals.css),
+  // which leaves exactly that strip of hero showing, and the bar must cover it.
+  useEffect(() => {
+    const hero = document.getElementById("top");
+    if (!hero || typeof IntersectionObserver === "undefined") return;
+    // --bar-h at its largest, plus 2px: an edge that just touches the line
+    // still counts as intersecting, and a jump lands the hero's bottom exactly on it.
+    const LINE = 66;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setStuck(!entry.isIntersecting && entry.boundingClientRect.bottom <= LINE);
+      },
+      { rootMargin: `-${LINE}px 0px 0px 0px` },
+    );
+    observer.observe(hero);
+    return () => observer.disconnect();
+  }, []);
 
   // While the sheet is open: Escape closes it, Tab stays inside the header, the
   // page behind never scrolls, and widening to the desktop layout closes it.
@@ -71,15 +101,31 @@ export function Nav({ onStart }: { onStart: () => void }) {
     <header
       ref={header}
       // Ink text and an ink focus ring: this always sits on ember.
-      className={`inset-x-0 top-0 z-50 text-ink [--focus:var(--color-ink)] ${
-        open ? "fixed bottom-0 flex flex-col overflow-y-auto bg-ember" : "absolute"
+      className={`nav-bar inset-x-0 top-0 z-50 text-ink [--focus:var(--color-ink)] ${
+        open
+          ? "fixed bottom-0 flex flex-col overflow-y-auto bg-ember"
+          : stuck
+            ? "fixed border-b-[3px] border-ink bg-ember"
+            : "absolute"
       }`}
+      data-stuck={stuck ? "" : undefined}
     >
-      <div className="flex h-[var(--nav-h)] shrink-0 items-end gap-11 px-g max-sm:gap-3">
+      <div
+        className={`flex shrink-0 gap-11 px-g max-sm:gap-3 ${
+          stuck ? "h-[var(--bar-h)] items-center" : "h-[var(--nav-h)] items-end"
+        }`}
+      >
         <a href="#top" className="flex min-h-[46px] items-center gap-3" aria-label="HVNF Studios, back to top">
           <SmallMark className="w-[34px] max-sm:w-[30px]" />
-          <b className="font-display text-[24px] font-extrabold leading-none tracking-[-0.03em] max-sm:text-[22px]">HVNF</b>
-          <span className="text-[16px] font-medium">Studios</span>
+          {/* In the phone bar the button needs the room: "Studios" goes, and "HVNF" too under 375px. */}
+          <b
+            className={`font-display text-[24px] font-extrabold leading-none tracking-[-0.03em] max-sm:text-[22px] ${
+              stuck && !open ? "max-[374px]:hidden" : ""
+            }`}
+          >
+            HVNF
+          </b>
+          <span className={`text-[16px] font-medium ${stuck && !open ? "max-sm:hidden" : ""}`}>Studios</span>
         </a>
 
         <nav aria-label="Sections" className="max-lg:hidden">
@@ -95,7 +141,7 @@ export function Nav({ onStart }: { onStart: () => void }) {
           </ul>
         </nav>
 
-        <Button onClick={onStart} size="sm" className="ml-auto max-sm:hidden">
+        <Button onClick={onStart} size="sm" className={`ml-auto ${stuck && !open ? "" : "max-sm:hidden"}`}>
           Ask for a preview
         </Button>
 
@@ -106,7 +152,7 @@ export function Nav({ onStart }: { onStart: () => void }) {
           aria-expanded={open}
           aria-controls="mobile-sheet"
           aria-label={open ? "Close menu" : "Open menu"}
-          className="btn size-[46px] !min-h-0 !p-0 max-sm:ml-auto lg:hidden"
+          className={`btn size-[46px] shrink-0 !min-h-0 !p-0 lg:hidden ${stuck && !open ? "" : "max-sm:ml-auto"}`}
         >
           {open ? <X size={22} strokeWidth={2.5} aria-hidden /> : <Menu size={22} strokeWidth={2.5} aria-hidden />}
         </button>

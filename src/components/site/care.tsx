@@ -49,6 +49,8 @@ export function Care() {
         {PILLARS.map((pillar, i) => (
           <li
             key={pillar.title}
+            // The hero's numbered labels link here (hero.tsx).
+            id={`promise-${i + 1}`}
             data-reveal
             style={{ "--d": i % 2 ? "80ms" : "0ms" } as CSSProperties}
             className={styles.cell}

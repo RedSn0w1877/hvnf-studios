@@ -43,12 +43,16 @@
 
   /* One easing for every entrance: weighted, settles, never bounces. */
   --ease-settle: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Press and hover feedback: a stronger ease-out, so the answer starts at once. */
+  --ease-press: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 @layer base {
   :root {
     /* The nav sits over the top of the hero; pad the hero by this. */
     --nav-h: 68px;
+    /* The bar the nav becomes once the hero has scrolled away (nav.tsx). */
+    --bar-h: 64px;
     /* Focus ring colour. Each surface below sets the one that shows on it. */
     --focus: var(--color-bone);
   }
@@ -56,6 +60,7 @@
   @media (max-width: 639px) {
     :root {
       --nav-h: 60px;
+      --bar-h: 60px;
     }
   }
 
@@ -64,6 +69,12 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     scroll-behavior: smooth;
+    /*
+      Anchor jumps and keyboard focus stop below the bar, so a section's top or
+      a focused link never lands under it. (At the very top the bar isn't there,
+      and nothing above the hero can be scrolled to anyway.)
+    */
+    scroll-padding-top: var(--bar-h);
   }
 
   body {
@@ -270,7 +281,7 @@
   /*
     The button (kit.tsx, <Button>): a square ink block, 56px tall, 46px in the
     nav. Hover and focus lift it with a flat overlay faded by opacity; a press
-    nudges it 1px. Nothing here repaints layout.
+    sinks it to 97% and lets go in 160ms. Nothing here repaints layout.
   */
   .btn {
     --btn-bg: var(--color-ink);
@@ -292,6 +303,7 @@
     white-space: nowrap;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
+    transition: transform 160ms var(--ease-press);
   }
   .btn[data-size="sm"] {
     min-height: 46px;
@@ -318,18 +330,23 @@
     background-color: var(--btn-fg);
     opacity: 0;
     pointer-events: none;
-    transition: opacity 150ms linear;
+    transition: opacity 150ms ease;
   }
   .btn:focus-visible::after {
     opacity: 0.14;
   }
-  @media (hover: hover) {
+  @media (hover: hover) and (pointer: fine) {
     .btn:not(:disabled):hover::after {
       opacity: 0.14;
     }
   }
+  /*
+    The press. Scale, not a nudge: the whole block answers the finger. Under
+    reduced motion the global rule below makes it land at once, which is still
+    feedback (a size change, not a movement).
+  */
   .btn:not(:disabled):active {
-    transform: translateY(1px);
+    transform: scale(0.97);
   }
   .btn:disabled {
     cursor: not-allowed;
@@ -347,7 +364,7 @@
     text-decoration-thickness: 2px;
     text-underline-offset: 6px;
   }
-  @media (hover: hover) {
+  @media (hover: hover) and (pointer: fine) {
     .link:hover {
       text-decoration-thickness: 3px;
     }
@@ -358,6 +375,22 @@
     width: 0.95em;
     height: 0.95em;
     flex: none;
+  }
+  /*
+    On hover the arrow steps 2px the way it points (down for "See examples",
+    up and out for a demo), so a text link answers the pointer as clearly as a
+    button does. Transform only; no movement at all under reduced motion.
+  */
+  @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+    .link .ico {
+      transition: transform 200ms var(--ease-press);
+    }
+    .link:hover .ico-down {
+      transform: translateY(2px);
+    }
+    .link:hover .ico-out {
+      transform: translate(2px, -2px);
+    }
   }
 
   /* The number square (kit.tsx, <NumberSquare>): the promises' 1 to 4. */
@@ -478,7 +511,22 @@
   transform-origin: left center;
 }
 
+/*
+  The return bar (nav.tsx): the header drops in from above once the hero has
+  scrolled away. It leaves without motion, because it only leaves when the
+  hero, and the printed nav at its top, are coming back.
+*/
+@keyframes bar-in {
+  from {
+    transform: translateY(-100%);
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
+  .nav-bar[data-stuck] {
+    animation: bar-in 240ms var(--ease-press);
+  }
+
   .ld-rise {
     animation: rv-rise var(--rv-t, 560ms) var(--ease-settle) var(--d, 0ms) backwards;
   }

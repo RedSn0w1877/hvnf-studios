@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, type CSSProperties } from "react";
-import Link from "next/link";
 import { STUDIO_EMAIL } from "@/lib/studio";
 import { ClosingCube, SmallMark } from "./cube-art";
 import { Button, Section, TextLink } from "./kit";
@@ -13,6 +12,14 @@ const GOOD_TENTHS = 25;
 
 // 44px tap targets on a 20px line: the padding widens each link to a thumb-sized
 // box and the matching negative margin takes it back out of the spacing.
+// The legal pages are plain links, not next/link. This Next version's static
+// export writes a nested route's prefetch data as legal/terms/__next.legal/terms/__PAGE__.txt
+// while its router asks for __next.legal.terms.__PAGE__.txt, so every <Link> to them logged
+// two 404s on the homepage, on GitHub Pages and on Vercel alike. A plain link is
+// a normal page load, which is all a legal page needs. (The 404 page does the
+// same for its way home.)
+const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
 const SMALL_LINK = "-mx-2 inline-flex min-h-11 min-w-11 items-center justify-center px-2 underline underline-offset-[5px]";
 
 /**
@@ -68,13 +75,13 @@ export function Closing({ onStart }: { onStart: () => void }) {
         <SmallMark className="mr-0.5 w-6 shrink-0" />
         <span>© 2026 HVNF Studios</span>{" "}
         <span aria-hidden>·</span>{" "}
-        <Link href="/legal/terms" className={SMALL_LINK}>
+        <a href={`${BASE}/legal/terms/`} className={SMALL_LINK}>
           Terms
-        </Link>{" "}
+        </a>{" "}
         <span aria-hidden>·</span>{" "}
-        <Link href="/legal/privacy" className={SMALL_LINK}>
+        <a href={`${BASE}/legal/privacy/`} className={SMALL_LINK}>
           Privacy
-        </Link>
+        </a>
       </p>
     </footer>
   );
