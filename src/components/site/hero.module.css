@@ -13,7 +13,8 @@
          it shrinks just enough that label 4 still fits above the fold.
   The cube is 58c wide and hangs 12.5c off the right edge, 9c below the top.
 
-  Layout tiers: below 1024 the cube sits bottom-right behind a numbered key;
+  Layout tiers: below 1024 the cube sits bottom-right beside a numbered key
+  (portrait tablets get a bigger cube that rises to the buttons);
   1024 to 1279 keeps the big cube but still uses the key and numbered discs
   (the 15px labels would run into the buttons); 1280 up gets the leader lines
   and labels.
@@ -27,7 +28,14 @@
   display: flex;
   flex-direction: column;
   min-height: 100svh;
+  /*
+    The cube is cropped by the hero's edges on purpose. clip, not hidden:
+    hidden would make the hero a scroll container as tall as the uncropped
+    cube (1079px on a 900px screen), which a focus or a script could scroll.
+    hidden stays as the fallback for browsers without clip (Safari 15).
+  */
   overflow: hidden;
+  overflow: clip;
 }
 
 .frame {
@@ -212,6 +220,32 @@
   }
 }
 
+/*
+  Portrait tablets, 640 to 1023: the cube grows into the right half and rises
+  to the buttons, the way it fills the poster on a laptop. It hangs 14% of its
+  width off the right edge and 7% off the bottom, so all four numbered discs
+  stay in frame, and its empty top-left corner tucks under the buttons, so no
+  beam runs behind the words. A near-square screen caps it by its height. The
+  key settles between the buttons and the foot, level with the cube's left
+  face. Landscape at these widths (small tablets, phones on their side) has
+  no spare height, and keeps the placement above.
+*/
+@media (min-width: 640px) and (max-width: 1023px) and (orientation: portrait) {
+  .stage {
+    --w: min(65cqw, 54.6svh);
+    width: var(--w);
+    left: auto;
+    right: calc(var(--w) * -0.14);
+    bottom: calc(var(--w) * -0.068);
+  }
+  .cta {
+    margin-bottom: 22px;
+  }
+  .tags {
+    margin: auto 0;
+  }
+}
+
 /* 1024 and up: the cube becomes the poster. */
 @media (min-width: 1024px) {
   .copy {
@@ -232,6 +266,24 @@
     right: calc(-1 * var(--ov) * var(--c));
     bottom: auto;
     top: calc(9 * var(--c));
+  }
+}
+
+/*
+  Wide, short laptop screens (1366x768, 1536x864, 1280x720): the headline is
+  sized by the width, so the room comes out of the spacing, never the type.
+  The gaps above the lead and the buttons, and the foot, close up until the
+  button sits 24px above the fold. 1440x900 and 1920x1080 are untouched.
+*/
+@media (min-width: 1024px) and (max-width: 1679px) and (min-aspect-ratio: 17/10), (min-width: 1024px) and (max-height: 740px) {
+  .copy {
+    padding-bottom: 24px;
+  }
+  .lead {
+    padding-top: 16px;
+  }
+  .cta {
+    margin-top: 20px;
   }
 }
 

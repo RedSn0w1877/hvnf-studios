@@ -26,8 +26,16 @@
  *    sits 12% above the bottom edge. Each is released after its first crossing,
  *    and an observer with nothing left to watch does no work. Nothing runs at
  *    rest: no scroll listener, no rAF, no timer.
- *  - html[data-rv] is set last. The hide rule needs it, so without JS (or
- *    before this runs) every block is simply visible.
+ *  - html[data-rv] is the hide rule's switch, and only the live path sets it:
+ *    the observer's own first callback (every observe() delivers one), proof
+ *    that it really runs. Without JS, before this runs, if a script fails, or
+ *    if the observer never reports, it is never set and every block is simply
+ *    visible. The first report lands a frame after start, when every block
+ *    still waiting is below the line, so nothing on screen blinks out.
+ *  - Focus (a Tab press) landing inside a block that is still waiting or still
+ *    playing in marks it "now": it shows at once, so a focus ring never sits
+ *    on something faded out, and keyboard moves never animate. One focusin
+ *    listener; it runs only when focus moves.
  *  - Under reduced motion everything is marked "now" and no observer is made.
  *
  * Rules: data-reveal must be in the server HTML (anything mounted later should
@@ -49,13 +57,31 @@ type Watch = { line: IntersectionObserver; backstop: IntersectionObserver };
 
 let watch: Watch | null = null;
 let holders = 0;
+let live = false;
 
-function arrive(el: Element) {
+// The observer has reported at least once, so it can be trusted to show what it hides.
+function goLive() {
+  if (live) return;
+  live = true;
+  document.documentElement.setAttribute(READY, "");
+}
+
+function arrive(el: Element, how: "" | "now" = "") {
   if (el.hasAttribute("data-in")) return;
-  el.setAttribute("data-in", "");
+  el.setAttribute("data-in", how);
   if (!watch) return;
   watch.line.unobserve(el);
   watch.backstop.unobserve(el);
+}
+
+// Focus that lands in a block still waiting or still playing in (Tab scrolls
+// faster than the line) shows that block at once: keyboard moves never animate,
+// and a focus ring must never sit on something at opacity 0.
+function onFocusIn(event: FocusEvent) {
+  const block = (event.target as Element | null)?.closest?.("[data-reveal]");
+  if (!block || block.getAttribute("data-in") === "now") return;
+  block.removeAttribute("data-in");
+  arrive(block, "now");
 }
 
 function start() {
@@ -70,17 +96,20 @@ function start() {
     watch = {
       line: new IntersectionObserver(
         (entries) => {
+          goLive();
           for (const entry of entries) if (entry.isIntersecting) arrive(entry.target);
         },
         { rootMargin: LINE_MARGIN },
       ),
       backstop: new IntersectionObserver(
         (entries) => {
+          goLive();
           for (const entry of entries) if (entry.intersectionRatio >= BACKSTOP_RATIO) arrive(entry.target);
         },
         { threshold: BACKSTOP_RATIO },
       ),
     };
+    document.addEventListener("focusin", onFocusIn);
   }
 
   pending.forEach((el, i) => {
@@ -92,14 +121,15 @@ function start() {
     }
   });
 
-  // Last: the hide rule only switches on once every block has been sorted.
-  document.documentElement.setAttribute(READY, "");
+  // The hide rule is not switched on here: goLive() does it from the first report.
 }
 
 function stop() {
+  document.removeEventListener("focusin", onFocusIn);
   watch?.line.disconnect();
   watch?.backstop.disconnect();
   watch = null;
+  live = false;
   // With nobody watching, nothing may stay hidden.
   document.documentElement.removeAttribute(READY);
 }

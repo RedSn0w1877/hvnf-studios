@@ -23,7 +23,14 @@ const LINKS = [
  * and the way back to each section, stays in reach for the four screens
  * between the hero and the closing call. One IntersectionObserver on the hero
  * decides it; it fires only when the hero's bottom edge crosses that line, so
- * nothing runs at rest.
+ * nothing runs at rest. A second one on the closing call sends the bar up and
+ * out while that section is on screen (data-away, globals.css), so its button
+ * never doubles the closing's own; a third marks the section link you are
+ * reading (aria-current). Each fires only when an edge crosses its line.
+ *
+ * The header paints its own ember even at the top, where it lies over the
+ * hero's ember: its ink focus ring then sits on a ground of its own, in the
+ * page's structure as well as on screen (the body behind it is ink).
  *
  *  - 1024 and up: links in a row, button on the right.
  *  - 640 to 1023: the links fold into the menu; the button stays.
@@ -36,6 +43,8 @@ const LINKS = [
 export function Nav({ onStart }: { onStart: () => void }) {
   const [open, setOpen] = useState(false);
   const [stuck, setStuck] = useState(false);
+  const [away, setAway] = useState(false);
+  const [current, setCurrent] = useState<string | null>(null);
   const header = useRef<HTMLElement>(null);
   const menuButton = useRef<HTMLButtonElement>(null);
 
@@ -56,6 +65,37 @@ export function Nav({ onStart }: { onStart: () => void }) {
       { rootMargin: `-${LINE}px 0px 0px 0px` },
     );
     observer.observe(hero);
+    return () => observer.disconnect();
+  }, []);
+
+  // Away while the closing call is on screen: from when its top clears the
+  // bottom 10% of the screen (its 8px band peeking in does not count).
+  useEffect(() => {
+    const closing = document.getElementById("closing");
+    if (!closing || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(([entry]) => setAway(entry.isIntersecting), {
+      rootMargin: "0px 0px -10% 0px",
+    });
+    observer.observe(closing);
+    return () => observer.disconnect();
+  }, []);
+
+  // The section under a line across the middle of the screen is the current one.
+  useEffect(() => {
+    if (typeof IntersectionObserver === "undefined") return;
+    const sections = LINKS.map((link) => document.getElementById(link.href.slice(1))).filter(
+      (el): el is HTMLElement => el !== null,
+    );
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          const id = entry.target.id;
+          setCurrent((was) => (entry.isIntersecting ? id : was === id ? null : was));
+        }
+      },
+      { rootMargin: "-50% 0px -50% 0px" },
+    );
+    for (const section of sections) observer.observe(section);
     return () => observer.disconnect();
   }, []);
 
@@ -106,9 +146,10 @@ export function Nav({ onStart }: { onStart: () => void }) {
           ? "fixed bottom-0 flex flex-col overflow-y-auto bg-ember"
           : stuck
             ? "fixed border-b-[3px] border-ink bg-ember"
-            : "absolute"
+            : "absolute bg-ember"
       }`}
       data-stuck={stuck ? "" : undefined}
+      data-away={stuck && away && !open ? "" : undefined}
     >
       <div
         className={`flex shrink-0 gap-11 px-g max-sm:gap-3 ${
@@ -133,7 +174,11 @@ export function Nav({ onStart }: { onStart: () => void }) {
           <ul role="list" className="flex gap-[30px] text-[16px] font-semibold">
             {LINKS.map((link) => (
               <li key={link.href}>
-                <a href={link.href} className="inline-flex min-h-[46px] items-center underline-offset-[6px] hover:underline hover:decoration-2">
+                <a
+                  href={link.href}
+                  aria-current={current === link.href.slice(1) ? "true" : undefined}
+                  className="inline-flex min-h-[46px] items-center underline-offset-[6px] hover:underline hover:decoration-2 aria-[current=true]:underline aria-[current=true]:decoration-2"
+                >
                   {link.label}
                 </a>
               </li>
@@ -166,6 +211,7 @@ export function Nav({ onStart }: { onStart: () => void }) {
                 <li key={link.href} className="border-b-[3px] border-ink">
                   <a
                     href={link.href}
+                    aria-current={current === link.href.slice(1) ? "true" : undefined}
                     onClick={() => setOpen(false)}
                     className="t-display flex min-h-[72px] items-center py-3 text-[40px] leading-none"
                   >

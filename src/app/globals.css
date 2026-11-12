@@ -77,6 +77,16 @@
     scroll-padding-top: var(--bar-h);
   }
 
+  /*
+    Keyboard moves never animate: while focus is keyboard focus, the scroll a
+    Tab (or Enter on a section link) causes is instant, so the ring is on screen
+    the moment it moves. A mouse click on a link sets no :focus-visible, so its
+    anchor jump stays smooth. Without :has() it all stays smooth, as before.
+  */
+  html:has(:focus-visible) {
+    scroll-behavior: auto;
+  }
+
   body {
     color: var(--color-bone);
     background-color: var(--color-ink);
@@ -468,8 +478,10 @@
   document.getAnimations() is empty. Do not put .ld-* or .rv-* on an element
   that also has a transform utility or a hover transform: wrap it instead.
 
-  Without JS, html[data-rv] is never set and nothing is ever hidden. Under
-  reduced motion none of these rules exist, so everything is simply there.
+  html[data-rv] is set only by the observer's own first report (in-view.ts), so
+  without JS, with slow or failed JS, or with an observer that never fires,
+  nothing is ever hidden. Under reduced motion none of these rules exist, so
+  everything is simply there.
 */
 @keyframes rv-rise {
   from {
@@ -513,8 +525,16 @@
 
 /*
   The return bar (nav.tsx): the header drops in from above once the hero has
-  scrolled away. It leaves without motion, because it only leaves when the
+  scrolled away. Going back to the top it leaves without motion, because the
   hero, and the printed nav at its top, are coming back.
+
+  It also steps aside while the closing call is on screen (data-away), so its
+  "Ask for a preview" never sits over the closing's own: it slides up and out
+  in 180ms, faster than it came in, then turns hidden so Tab cannot land in
+  it. If keyboard focus is inside it, it stays until focus leaves (a mouse
+  click's focus does not count, so a clicked link never pins it). Scrolling
+  back up brings it down again in 240ms. Under reduced motion it simply goes.
+  A browser without :has() keeps the bar, as before.
 */
 @keyframes bar-in {
   from {
@@ -522,9 +542,20 @@
   }
 }
 
+.nav-bar[data-away]:not(:has(:focus-visible)) {
+  transform: translateY(-100%);
+  visibility: hidden;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .nav-bar[data-stuck] {
     animation: bar-in 240ms var(--ease-press);
+    transition: transform 240ms var(--ease-press);
+  }
+  .nav-bar[data-away]:not(:has(:focus-visible)) {
+    transition:
+      transform 180ms var(--ease-press),
+      visibility 0s linear 180ms;
   }
 
   .ld-rise {
@@ -546,7 +577,7 @@
     animation: rv-up var(--rv-t, 560ms) var(--ease-settle) var(--d, 0ms) backwards;
   }
 
-  /* Waiting: hidden only once in-view.ts has sorted the page (html[data-rv]). */
+  /* Waiting: hidden only once in-view.ts's observer has reported (html[data-rv]). */
   html[data-rv] [data-reveal]:not([data-in]) :is(.rv-rise, .rv-fade, .rv-wipe, .rv-pop, .rv-slide, .rv-up),
   html[data-rv] [data-reveal]:not([data-in]):is(.rv-rise, .rv-fade, .rv-wipe, .rv-pop, .rv-slide, .rv-up) {
     opacity: 0;
