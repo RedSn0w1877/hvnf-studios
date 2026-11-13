@@ -39,7 +39,7 @@ export const metadata: Metadata = {
   // GitHub Pages. A canonical or og:url added later should use SITE_URL itself.
   metadataBase: new URL("/", SITE_URL),
   title: {
-    default: "HVNF Studios | Fast websites for local businesses",
+    default: "HVNF Studios | Beautiful websites for beautiful businesses",
     template: "%s | HVNF Studios",
   },
   description:
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
   applicationName: "HVNF Studios",
   // The image comes from opengraph-image.jpg and its .alt.txt beside this file.
   openGraph: {
-    title: "HVNF Studios | Fast websites for local businesses",
+    title: "HVNF Studios | Beautiful websites for beautiful businesses",
     description:
       "We’re a small studio. We build your new site first, and you try it on your phone before you pay anything.",
     type: "website",

@@ -62,7 +62,7 @@
 .h1 {
   position: relative;
   z-index: 2;
-  font-size: max(52px, calc(9.7 * var(--u)));
+  font-size: max(52px, calc(7.6 * var(--u)));
 }
 
 .promise {
@@ -291,7 +291,7 @@
 @media (min-width: 1024px) and (max-width: 1279px) {
   /* The cube hangs less far off the edge here, so the headline and the words in the bar step down to clear it. */
   .h1 {
-    font-size: calc(9 * var(--u));
+    font-size: calc(7.2 * var(--u));
   }
   .tags {
     grid-template-columns: repeat(2, minmax(0, 1fr));

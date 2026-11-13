@@ -56,8 +56,8 @@ export function Hero({ onStart }: { onStart: () => void }) {
             than the lead below it.
           */}
           <h1 className={`t-display ${s.h1}`}>
-            Fast websites <br />
-            for local <br />
+            Beautiful websites <br />
+            for beautiful <br />
             businesses.{" "}
             <span className={s.promise}>
               <span className={s.promiseText}>
