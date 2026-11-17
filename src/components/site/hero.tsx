@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
-import { HERO_CALLOUTS, HeroCube, cubePoint, type CubePart } from "./cube-art";
+import { HERO_CALLOUTS, cubePoint, type CubePart } from "./cube-art";
+import { HeroCube } from "./hero-cube";
 import { ArrowDown, Button, Section, TextLink } from "./kit";
 import s from "./hero.module.css";
 

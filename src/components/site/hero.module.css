@@ -370,22 +370,26 @@
   copy of the beams fades in) and underlines its words. Below 1280 the part
   carries the numbered disc instead of a leader, and lights the same way.
 */
-.frame:has(.tag[data-part="top"] .card:focus-visible) .stage :global(.cube-hl[data-part="top"]),
-.frame:has(.tag[data-part="left"] .card:focus-visible) .stage :global(.cube-hl[data-part="left"]),
-.frame:has(.tag[data-part="right"] .card:focus-visible) .stage :global(.cube-hl[data-part="right"]),
-.frame:has(.tag[data-part="brace"] .card:focus-visible) .stage :global(.cube-hl[data-part="brace"]) {
-  opacity: 1;
+.frame:has(.tag[data-part="top"] .card:focus-visible) .stage .bm[data-part="top"],
+.frame:has(.tag[data-part="left"] .card:focus-visible) .stage .bm[data-part="left"],
+.frame:has(.tag[data-part="right"] .card:focus-visible) .stage .bm[data-part="right"],
+.frame:has(.tag[data-part="brace"] .card:focus-visible) .stage .bm[data-part="brace"] {
+  --cx: #efe6d3;
+  --cy: #fffaf0;
+  --cz: #e0d6bf;
 }
 .card:focus-visible .t {
   text-decoration: underline 2px;
   text-underline-offset: 3px;
 }
 @media (hover: hover) and (pointer: fine) {
-  .frame:has(.tag[data-part="top"] .card:hover) .stage :global(.cube-hl[data-part="top"]),
-  .frame:has(.tag[data-part="left"] .card:hover) .stage :global(.cube-hl[data-part="left"]),
-  .frame:has(.tag[data-part="right"] .card:hover) .stage :global(.cube-hl[data-part="right"]),
-  .frame:has(.tag[data-part="brace"] .card:hover) .stage :global(.cube-hl[data-part="brace"]) {
-    opacity: 1;
+  .frame:has(.tag[data-part="top"] .card:hover) .stage .bm[data-part="top"],
+  .frame:has(.tag[data-part="left"] .card:hover) .stage .bm[data-part="left"],
+  .frame:has(.tag[data-part="right"] .card:hover) .stage .bm[data-part="right"],
+  .frame:has(.tag[data-part="brace"] .card:hover) .stage .bm[data-part="brace"] {
+    --cx: #efe6d3;
+    --cy: #fffaf0;
+    --cz: #e0d6bf;
   }
   .card:hover .t {
     text-decoration: underline 2px;
@@ -455,4 +459,131 @@
   .stage :global(.cube-disc[data-part="brace"]) {
     --i: 3;
   }
+}
+
+/* ── The solid cube: twelve beams, eight corner blocks and a brace, in CSS 3D ── */
+
+.scene {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 176 / 200;
+  container-type: inline-size;
+  pointer-events: auto;
+  touch-action: pan-y;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.scene:active {
+  cursor: grabbing;
+}
+.rig {
+  --u: calc(100cqw / 176);
+  --s: calc(var(--u) * var(--k));
+  --rx: -35.264deg;
+  --ry: 45deg;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  transform-style: preserve-3d;
+  transform: rotateX(var(--rx)) rotateY(var(--ry));
+  transition: transform 900ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.rig[data-drag] {
+  transition: none;
+}
+.bm {
+  --cx: #1d1713;
+  --cy: #4a392e;
+  --cz: #0a0806;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  transform-style: preserve-3d;
+  transform: translate3d(calc(var(--bx) * var(--s)), calc(var(--by) * var(--s)), calc(var(--bz) * var(--s)));
+}
+.bm[data-brace] {
+  --cx: #e8dfca;
+  --cy: #f6efe0;
+  --cz: #d8ceb6;
+  transform: rotateY(45deg) rotateX(35.264deg);
+}
+.f {
+  position: absolute;
+  left: 0;
+  top: 0;
+  backface-visibility: hidden;
+  transition: background-color 200ms ease;
+}
+.f[data-o="z"] {
+  width: calc(var(--sx) * var(--s));
+  height: calc(var(--sy) * var(--s));
+  background: var(--cz);
+  outline: 1px solid var(--cz);
+}
+.f[data-o="x"] {
+  width: calc(var(--sz) * var(--s));
+  height: calc(var(--sy) * var(--s));
+  background: var(--cx);
+  outline: 1px solid var(--cx);
+}
+.f[data-o="y"] {
+  width: calc(var(--sx) * var(--s));
+  height: calc(var(--sz) * var(--s));
+  background: var(--cy);
+  outline: 1px solid var(--cy);
+}
+.f[data-o="z"][data-d="p"] {
+  transform: translate(-50%, -50%) translateZ(calc(var(--sz) * var(--s) / 2));
+}
+.f[data-o="z"][data-d="n"] {
+  transform: translate(-50%, -50%) rotateY(180deg) translateZ(calc(var(--sz) * var(--s) / 2));
+}
+.f[data-o="x"][data-d="p"] {
+  transform: translate(-50%, -50%) rotateY(90deg) translateZ(calc(var(--sx) * var(--s) / 2));
+}
+.f[data-o="x"][data-d="n"] {
+  transform: translate(-50%, -50%) rotateY(-90deg) translateZ(calc(var(--sx) * var(--s) / 2));
+}
+.f[data-o="y"][data-d="p"] {
+  transform: translate(-50%, -50%) rotateX(90deg) translateZ(calc(var(--sy) * var(--s) / 2));
+}
+.f[data-o="y"][data-d="n"] {
+  transform: translate(-50%, -50%) rotateX(-90deg) translateZ(calc(var(--sy) * var(--s) / 2));
+}
+.over {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  transition: opacity 200ms ease;
+}
+/* While the cube is turned, the numbers and their leaders step aside. */
+:global([data-cube-drag]) .over,
+:global([data-cube-drag]) .tags {
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rig {
+    transition: none;
+  }
+}
+
+/*
+  The copy column spans the whole hero, so it sits on top of the cube. Let the
+  pointer through to the cube everywhere except the things you can use.
+*/
+.copy {
+  pointer-events: none;
+}
+.copy .lead,
+.copy .cta,
+.copy .tag {
+  pointer-events: auto;
 }
