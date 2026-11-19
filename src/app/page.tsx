@@ -104,7 +104,7 @@ export default function HomePage() {
 
       <main id="main">
         <Hero onStart={openIntake} />
-        <Work />
+        <Work onStart={openIntake} />
         <Method />
         <Care />
       </main>

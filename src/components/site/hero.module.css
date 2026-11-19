@@ -13,8 +13,9 @@
          it shrinks just enough that label 4 still fits above the fold.
   The cube is 58c wide and hangs 12.5c off the right edge, 9c below the top.
 
-  Layout tiers: below 1024 the cube sits bottom-right beside a numbered key
-  (portrait tablets get a bigger cube that rises to the buttons);
+  Layout tiers: below 1024 the cube is a small brand mark above a phone-sized
+  still of Penner & Daughters, which sits beside the numbered key and links to
+  its card in the examples;
   1024 to 1279 keeps the big cube but still uses the key and numbered discs
   (the 15px labels would run into the buttons); 1280 up gets the leader lines
   and labels.
@@ -114,10 +115,10 @@
 .stage {
   position: absolute;
   z-index: 1;
-  /* Phones and tablets: bottom-right, half the width, cropped by the hero. */
-  width: 50cqw;
-  left: 52cqw;
-  bottom: -6cqw;
+  /* Phones and tablets: a small mark sitting just above the Penner still (.side), right-aligned with it. */
+  width: 52px;
+  right: 0;
+  bottom: calc(100% + 6px);
   pointer-events: none;
 }
 
@@ -177,72 +178,186 @@
 @media (max-width: 1023px) {
   .tags {
     gap: 0;
+    margin: 0;
+    max-width: none;
   }
   .card {
     min-height: 44px;
     align-content: center;
   }
-}
-
-/* Phones. */
-@media (max-width: 639px) {
-  .copy {
-    padding-top: calc(var(--nav-h) + 22px);
-    padding-bottom: 28px;
-  }
-  .h1 {
-    font-size: 14.4cqw;
-  }
-  .promise {
-    margin-top: 0.22em;
-    padding: 0.2em 1.2em 0.26em var(--spacing-g);
-    font-size: 0.7em;
-    line-height: 0.94;
-  }
-  .promise span {
-    display: block;
-  }
-  .lead {
-    margin-top: 20px;
-  }
-  .cta > :first-child {
-    flex: 1 1 100%;
-  }
-  .stage {
-    width: 64cqw;
-    left: 42cqw;
-    bottom: -9cqw;
-  }
-  .tags {
-    max-width: 37cqw;
-    min-height: 54cqw;
-    align-content: start;
+  /* At this size the cube is a mark, not a diagram: its numbered discs would be unreadable. */
+  .stage .over {
+    display: none;
   }
 }
 
 /*
-  Portrait tablets, 640 to 1023: the cube grows into the right half and rises
-  to the buttons, the way it fills the poster on a laptop. It hangs 14% of its
-  width off the right edge and 7% off the bottom, so all four numbered discs
-  stay in frame, and its empty top-left corner tucks under the buttons, so no
-  beam runs behind the words. A near-square screen caps it by its height. The
-  key settles between the buttons and the foot, level with the cube's left
-  face. Landscape at these widths (small tablets, phones on their side) has
-  no spare height, and keeps the placement above.
+  Phones and tablets: the key on the left, the Penner still on the right with
+  the small cube above it, level with "See examples".
 */
-@media (min-width: 640px) and (max-width: 1023px) and (orientation: portrait) {
-  .stage {
-    --w: min(65cqw, 54.6svh);
-    width: var(--w);
-    left: auto;
-    right: calc(var(--w) * -0.14);
-    bottom: calc(var(--w) * -0.068);
+.foot {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0 16px;
+  margin-top: 18px;
+}
+.side {
+  position: relative;
+  width: clamp(136px, 42cqw, 184px);
+}
+
+/* The still links to the Penner card in the examples (work.tsx, #work-penner). */
+.peek {
+  display: grid;
+  gap: 8px;
+  color: inherit;
+  text-decoration: none;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+}
+.peekShot {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  aspect-ratio: 390 / 440;
+  border: 2px solid var(--color-ink);
+  background-color: #c9cdd1;
+}
+/* Cropped to the demo's headline, its promise and its Call button. */
+.peekShot img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  object-position: 50% 66%;
+}
+.peekText {
+  display: grid;
+  gap: 1px;
+  line-height: 1.25;
+}
+.peekSector {
+  font-size: 13px;
+  font-weight: 500;
+}
+.peekTitle {
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: underline 2px;
+  text-underline-offset: 3px;
+  text-wrap: balance;
+}
+.peekTitle > span {
+  white-space: nowrap;
+}
+/* Preflight makes an svg a block; this arrow rides the line instead. */
+.peekTitle :global(.ico) {
+  display: inline-block;
+  margin-left: 5px;
+  vertical-align: -0.12em;
+}
+/* A press sinks the still to 98%, like the buttons, and lets go in 160ms. */
+@media (prefers-reduced-motion: no-preference) {
+  .peekShot {
+    transition: transform 160ms var(--ease-press);
+  }
+  .peek:active .peekShot {
+    transform: scale(0.98);
+  }
+}
+/* As with the page's text links: the underline thickens and the arrow steps down 2px. */
+@media (hover: hover) and (pointer: fine) {
+  .peekTitle :global(.ico) {
+    transition: transform 200ms var(--ease-press);
+  }
+  .peek:hover .peekTitle {
+    text-decoration-thickness: 3px;
+  }
+  .peek:hover .peekTitle :global(.ico) {
+    transform: translateY(2px);
+  }
+}
+
+/*
+  Phones: headline, bar, lead and button read as one compact group. The
+  headline's <br>s go, so it wraps on its own in three lines (at 10.4cqw
+  "Beautiful websites" still fits a 320 screen), and the bar holds its words on
+  one line where they fit, breaking only between its two halves.
+*/
+@media (max-width: 639px) {
+  .copy {
+    padding-top: calc(var(--nav-h) + 16px);
+    padding-bottom: 24px;
+  }
+  .h1 {
+    font-size: 10.4cqw;
+  }
+  .h1 br {
+    display: none;
+  }
+  .promise {
+    margin-top: 0.28em;
+    padding: 0.16em 1.1em 0.2em var(--spacing-g);
+    font-size: 0.62em;
+    line-height: 1;
+    white-space: normal;
+  }
+  .promiseText > span {
+    display: inline-block;
+    white-space: nowrap;
+  }
+  .lead {
+    margin-top: 14px;
   }
   .cta {
-    margin-bottom: 22px;
+    margin-top: 16px;
+    row-gap: 4px;
+  }
+  .cta > :first-child {
+    flex: 1 1 100%;
+  }
+  .foot {
+    margin-top: 14px;
+  }
+}
+
+/* Tablets, 640 to 1023: a bigger still and cube, the key level with the still. */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .foot {
+    gap: 0 32px;
+    margin-top: 36px;
+  }
+  .side {
+    width: min(300px, 38cqw);
+  }
+  .stage {
+    width: 72px;
+    bottom: calc(100% + 10px);
+  }
+  .peekSector {
+    font-size: 14px;
+  }
+  .peekTitle {
+    font-size: 16px;
   }
   .tags {
-    margin: auto 0;
+    align-self: center;
+  }
+}
+
+/* 1024 and up the wrappers step aside: the key and the cube are placed exactly as before, and the still is gone. */
+@media (min-width: 1024px) {
+  .foot,
+  .side {
+    display: contents;
+  }
+  .peek {
+    display: none;
   }
 }
 
@@ -584,6 +699,7 @@
 }
 .copy .lead,
 .copy .cta,
-.copy .tag {
+.copy .tag,
+.copy .peek {
   pointer-events: auto;
 }

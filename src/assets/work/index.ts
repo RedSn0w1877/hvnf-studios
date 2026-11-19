@@ -25,7 +25,9 @@ import pennerDesktop640Avif from "./penner-desktop-640.avif";
 import pennerDesktop1024Webp from "./penner-desktop-1024.webp";
 import pennerDesktop640Webp from "./penner-desktop-640.webp";
 import pennerPhone390Avif from "./penner-phone-390.avif";
+import pennerPhone780Avif from "./penner-phone-780.avif";
 import pennerPhone390Webp from "./penner-phone-390.webp";
+import pennerPhone780Webp from "./penner-phone-780.webp";
 
 /**
  * One encoded file. Its size is written here by posters.mjs, not read off the
@@ -113,10 +115,12 @@ export const SHOTS = {
     },
     phone: {
       avif: [
-        { file: pennerPhone390Avif, width: 390, height: 488 },
+        { file: pennerPhone390Avif, width: 390, height: 844 },
+        { file: pennerPhone780Avif, width: 780, height: 1688 },
       ],
       webp: [
-        { file: pennerPhone390Webp, width: 390, height: 488 },
+        { file: pennerPhone390Webp, width: 390, height: 844 },
+        { file: pennerPhone780Webp, width: 780, height: 1688 },
       ],
     },
   },

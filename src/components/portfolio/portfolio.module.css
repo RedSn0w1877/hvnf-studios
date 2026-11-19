@@ -1,0 +1,999 @@
+/*
+ * The portfolio bento. Read bento.tsx and portfolio.tsx first.
+ *
+ * Geometry. A bento is a size container (cqw/cqh are its width and height), so
+ * every box is computed from it: --pad round the edge, --gap between boxes,
+ * --top for the first row. The headline box's width is --split of the room
+ * the two big boxes share; the picture box takes the rest. Its rectangle is
+ * --rx/--ry/--rw/--rh, and every moving part (device, stickers, cursor,
+ * asterisk, orbit) is placed by fractions of it: --dx/--dy, --ax/--ay …
+ *
+ * Motion. The step's numbers arrive as custom properties on the root. The
+ * plates and parts transition `transform` on --spring, a real damped spring
+ * (damping ratio 0.62) sampled into linear(): it overshoots by 8% at about 40%
+ * of its run and settles. That overshoot is the "slight bounce". Colours take a
+ * plain ease (a colour has nothing to overshoot into). Text layers leave fast
+ * (200ms ease-out) and arrive on the spring, so the old and the new never
+ * read at once. Transitions, not keyframes: scroll back mid-morph and every
+ * part turns round from where it is.
+ */
+
+.page {
+  --spring: linear(0, 0.0228, 0.0827, 0.168, 0.2689, 0.3772, 0.4864, 0.5915, 0.6889, 0.7763, 0.8522, 0.9162, 0.9683, 1.0092, 1.0398, 1.0612, 1.0747, 1.0818, 1.0835, 1.0812, 1.0759, 1.0686, 1.0601, 1.051, 1.0419, 1.0332, 1.0251, 1.0179, 1.0117, 1.0065, 1.0022, 0.9989, 0.9964, 0.9947, 0.9937, 0.9931, 0.993, 0.9933, 0.9937, 0.9943, 0.9951, 0.9958, 0.9966, 0.9973, 0.998, 1);
+  --out: cubic-bezier(0.23, 1, 0.32, 1);
+  --morph: 900ms;
+  --tint: 420ms;
+
+  background: #ecedee;
+  color: #121417;
+  font-family: var(--font-sans);
+}
+
+@supports not (transition-timing-function: linear(0, 1)) {
+  .page {
+    --spring: cubic-bezier(0.34, 1.45, 0.64, 1);
+    --morph: 700ms;
+  }
+}
+
+/* The layout paints the body ink for the homepage; this page's ground is pale. */
+:global(body):has(.page) {
+  background: #ecedee;
+}
+
+/* Snap near a step, never forced. The homepage's 64px scroll padding is for its bar, which this page has not got. */
+:global(html):has(.track) {
+  scroll-snap-type: y proximity;
+  scroll-padding-top: 0;
+}
+
+/* ── Track, sentinels, sticky stage ─────────────────────────────────────── */
+
+.track {
+  position: relative;
+  height: calc(var(--steps) * 100svh);
+}
+
+.sentinel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--i) * 100svh);
+  height: 100svh;
+  scroll-snap-align: start;
+  pointer-events: none;
+}
+
+.sticky {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+}
+
+.static {
+  display: none;
+}
+
+/* No JavaScript: no stage, the steps stacked one under another. */
+:global(html:not(.js)) .track {
+  display: none;
+}
+
+:global(html:not(.js)) .static {
+  display: block;
+}
+
+:global(html:not(.js)) .page {
+  scroll-snap-type: none;
+}
+
+.bento.staticBento {
+  height: 100svh;
+  min-height: 620px;
+}
+
+/* ── The bento ──────────────────────────────────────────────────────────── */
+
+.bento {
+  container-type: size;
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  background: var(--ground);
+  color: var(--ink);
+  --focus: var(--ink);
+  transition:
+    background-color var(--tint) ease,
+    color var(--tint) ease;
+
+  --pad: clamp(10px, 2.4cqw, 36px);
+  --gap: 6px;
+  --radius: clamp(18px, 1.9cqw, 28px);
+  --top: clamp(60px, 9cqh, 80px);
+  --logo-w: clamp(150px, 14.6cqw, 210px);
+  --pill-w: clamp(132px, 9.6cqw, 138px);
+
+  /* The room the two big boxes share, and the picture box's rectangle. */
+  --W: calc(100cqw - 2 * var(--pad) - var(--gap));
+  --ly: calc(var(--pad) + var(--top) + var(--gap));
+  --lh: calc(100cqh - var(--ly) - var(--pad));
+  --rx: calc(var(--pad) + var(--W) * var(--split) + var(--gap));
+  --ry: var(--ly);
+  --rw: calc(var(--W) * (1 - var(--split)));
+  --rh: var(--lh);
+
+  /* Sizes of the moving parts: from the half split, so a step never resizes them. */
+  --dev-w: min(calc(var(--W) * 0.37), calc(var(--rh) * 1.02));
+  --sticker: clamp(92px, min(11.4cqw, 20cqh), 168px);
+}
+
+.bento ::selection {
+  background: var(--ink);
+  color: var(--box);
+}
+
+/* Plates: the boxes' colour and shape. */
+.plate {
+  position: absolute;
+  background: var(--box);
+  border-radius: var(--radius);
+  transition:
+    background-color var(--tint) ease,
+    transform var(--morph) var(--spring);
+}
+
+.plateLogo {
+  left: var(--pad);
+  top: var(--pad);
+  width: var(--logo-w);
+  height: var(--top);
+}
+
+.plateNav {
+  left: calc(var(--pad) + var(--logo-w) + var(--gap));
+  right: calc(var(--pad) + var(--pill-w) + var(--gap));
+  top: var(--pad);
+  height: var(--top);
+}
+
+.platePill {
+  right: var(--pad);
+  top: var(--pad);
+  width: var(--pill-w);
+  height: var(--top);
+  border-radius: 999px;
+}
+
+/* The two big boxes are drawn at a half split and scaled to the step's split (8% at most, so the corners never visibly stretch). */
+.plateLeft {
+  left: var(--pad);
+  top: var(--ly);
+  width: calc(var(--W) * 0.5);
+  height: var(--lh);
+  transform-origin: left center;
+  transform: scaleX(calc(var(--split) / 0.5));
+}
+
+.plateRight {
+  right: var(--pad);
+  top: var(--ry);
+  width: calc(var(--W) * 0.5);
+  height: var(--rh);
+  transform-origin: right center;
+  transform: scaleX(calc((1 - var(--split)) / 0.5));
+}
+
+/* ── Top row ────────────────────────────────────────────────────────────── */
+
+.logo {
+  position: absolute;
+  left: var(--pad);
+  top: var(--pad);
+  width: var(--logo-w);
+  height: var(--top);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-left: clamp(18px, 2.3cqw, 34px);
+  border-radius: var(--radius);
+  font-family: var(--font-display);
+  font-size: clamp(17px, 1.6cqw, 23px);
+  line-height: 0.98;
+  letter-spacing: -0.02em;
+  color: inherit;
+  text-decoration: none;
+}
+
+.nav {
+  position: absolute;
+  left: calc(var(--pad) + var(--logo-w) + var(--gap));
+  right: calc(var(--pad) + var(--pill-w) + var(--gap));
+  top: var(--pad);
+  height: var(--top);
+  display: flex;
+  align-items: center;
+  gap: clamp(16px, 2.4cqw, 36px);
+  padding-inline: clamp(18px, 2.3cqw, 34px) clamp(10px, 1.4cqw, 22px);
+}
+
+.navTitle {
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(17px, 1.5cqw, 22px);
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+  white-space: nowrap;
+}
+
+.titleNote {
+  margin: 3px 0 0;
+  font-size: 13px;
+  line-height: 1.3;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.navLinks {
+  margin-left: auto;
+  display: flex;
+  gap: 4px;
+}
+
+.navLink {
+  display: inline-flex;
+  align-items: center;
+  height: 44px;
+  padding-inline: 14px;
+  border-radius: 999px;
+  color: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 5px;
+  transition: text-decoration-color 160ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .navLink:hover {
+    text-decoration-color: currentColor;
+  }
+}
+
+/* The step dots. Each is a 44px target round an 8px mark; the active one stretches into a bar. */
+.dots {
+  display: flex;
+  align-items: center;
+}
+
+.dot {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.dot span {
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.35;
+  transition:
+    opacity 200ms ease,
+    transform 320ms var(--out);
+}
+
+.dot[aria-current] span {
+  opacity: 1;
+  transform: scale(1.5);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .dot:hover span {
+    opacity: 0.75;
+  }
+}
+
+.pillSlot {
+  position: absolute;
+  right: var(--pad);
+  top: var(--pad);
+  width: var(--pill-w);
+  height: var(--top);
+}
+
+.next {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 160ms var(--out);
+}
+
+.next:active {
+  transform: scale(0.96);
+}
+
+.nextIcon {
+  width: 16px;
+  height: 16px;
+  transition: transform 200ms var(--out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .next:hover .nextIcon {
+    transform: translateY(2px);
+  }
+}
+
+/* ── Headline box: one layer per step ───────────────────────────────────── */
+
+.layer {
+  position: absolute;
+  left: var(--pad);
+  top: var(--ly);
+  width: calc(var(--W) * var(--ls));
+  height: var(--lh);
+  display: flex;
+  flex-direction: column;
+  padding: clamp(24px, 3cqw, 44px) clamp(24px, 2.8cqw, 42px) clamp(24px, 2.8cqw, 40px);
+  visibility: hidden;
+  transition: visibility 0s linear 220ms;
+}
+
+.layer[data-state="on"] {
+  visibility: visible;
+  transition: none;
+}
+
+/* Each part of a layer leaves fast and arrives on the spring, a beat after the plates start. */
+.layer > * {
+  opacity: 0;
+  filter: blur(6px);
+  transition:
+    opacity 200ms var(--out),
+    transform 220ms var(--out),
+    filter 200ms var(--out);
+}
+
+.layer[data-state="before"] > * {
+  transform: translateY(-26px);
+}
+
+.layer[data-state="after"] > * {
+  transform: translateY(30px);
+}
+
+.layer[data-state="on"] > * {
+  opacity: 1;
+  filter: none;
+  transform: none;
+  transition:
+    opacity 340ms var(--out) var(--d),
+    transform var(--morph) var(--spring) var(--d),
+    filter 340ms var(--out) var(--d);
+}
+
+.layer > :nth-child(1) {
+  --d: 90ms;
+}
+.layer > :nth-child(2) {
+  --d: 130ms;
+}
+.layer > :nth-child(3) {
+  --d: 180ms;
+}
+.layer > :nth-child(4) {
+  --d: 220ms;
+}
+
+.layerHead {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}
+
+.name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(20px, 1.9cqw, 28px);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+.sector {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.headline {
+  margin: clamp(28px, 6cqh, 64px) 0 0;
+  max-width: 11.5em;
+  font-family: var(--font-display);
+  font-size: clamp(40px, min(5.9cqw, 10.4cqh), 92px);
+  line-height: 0.96;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.blurb {
+  margin: clamp(16px, 2.6cqh, 26px) 0 0;
+  max-width: 30em;
+  font-size: clamp(16px, 1.3cqw, 19px);
+  line-height: 1.5;
+}
+
+.cta {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 58px;
+  padding: 0 26px 0 24px;
+  border-radius: 999px;
+  background: var(--pill-bg);
+  color: var(--pill-fg);
+  font-size: 17px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.layer > .cta {
+  transition:
+    opacity 200ms var(--out),
+    transform 220ms var(--out),
+    filter 200ms var(--out),
+    background-color var(--tint) ease,
+    color var(--tint) ease;
+}
+
+.cta:active {
+  scale: 0.985;
+}
+
+.layer[data-state="on"] > .cta {
+  transition:
+    opacity 340ms var(--out) var(--d),
+    transform var(--morph) var(--spring) var(--d),
+    filter 340ms var(--out) var(--d),
+    background-color var(--tint) ease,
+    color var(--tint) ease;
+}
+
+.ctaArrow {
+  flex: none;
+  width: 30px;
+  height: 16px;
+  transition: transform 220ms var(--out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cta:hover .ctaArrow {
+    transform: translateX(5px);
+  }
+}
+
+.cta:active .ctaArrow {
+  transform: translateX(8px);
+}
+
+/* ── Picture box: the moving parts ──────────────────────────────────────── */
+
+/* Every part is placed by its centre: a fraction of the picture box, and a turn. */
+.part {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transition: transform var(--morph) var(--spring) var(--d, 0ms);
+}
+
+.orbit {
+  width: calc(var(--dev-w) * 1.18);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 1.5px solid color-mix(in srgb, var(--ink) 34%, transparent);
+  transform: translate(calc(var(--rx) + var(--rw) * var(--ox) - 50%), calc(var(--ry) + var(--rh) * var(--oy) - 50%));
+  transition:
+    transform var(--morph) var(--spring),
+    border-color var(--tint) ease,
+    opacity 300ms ease;
+}
+
+.device {
+  --d: 30ms;
+  width: var(--dev-w);
+  display: block;
+  transform: translate(calc(var(--rx) + var(--rw) * var(--dx) - 50%), calc(var(--ry) + var(--rh) * var(--dy) - 50%))
+    rotate(var(--dr));
+  transition:
+    transform var(--morph) var(--spring) var(--d),
+    opacity 260ms var(--out);
+}
+
+.frame {
+  display: block;
+  padding: 0 clamp(6px, 0.7cqw, 10px) clamp(6px, 0.7cqw, 10px);
+  border-radius: clamp(12px, 1.3cqw, 18px);
+  background: var(--bezel);
+  box-shadow:
+    0 2px 4px color-mix(in srgb, #000 18%, transparent),
+    0 24px 48px -12px color-mix(in srgb, #000 38%, transparent);
+  transition:
+    background-color var(--tint) ease,
+    transform 300ms var(--out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .device:hover .frame {
+    transform: translateY(-6px);
+  }
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: clamp(26px, 2.6cqw, 36px);
+  padding-left: 4px;
+}
+
+.bar i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f2f2ee;
+  opacity: 0.85;
+}
+
+.url {
+  margin-left: auto;
+  margin-right: auto;
+  padding: 3px 14px;
+  border-radius: 999px;
+  background: color-mix(in srgb, #ffffff 14%, transparent);
+  color: #f2f2ee;
+  font-size: 11px;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 70%;
+}
+
+.screen {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border-radius: clamp(6px, 0.6cqw, 9px);
+  background: #1b1b1b;
+}
+
+.shot {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transform: scale(1.06);
+  transition:
+    opacity 260ms var(--out),
+    transform 600ms var(--out);
+}
+
+.shot[data-state="on"] {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 380ms var(--out) 120ms,
+    transform 900ms var(--out) 120ms;
+}
+
+.shotImg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: left top;
+}
+
+.shotEmpty {
+  display: block;
+  height: 100%;
+}
+
+/* The closing step: the device steps back and the four phones fan out in its place. */
+.bento[data-closing] .device {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.bento[data-closing] .orbit {
+  opacity: 0;
+}
+
+.fanSlot {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--rw);
+  height: var(--rh);
+  transform: translate(var(--rx), var(--ry));
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  transition: transform var(--morph) var(--spring);
+}
+
+.fan {
+  position: relative;
+  width: min(calc(var(--rh) * 0.4), calc(var(--rw) * 0.3));
+  aspect-ratio: 390 / 488;
+}
+
+.fanPhone {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border: clamp(5px, 0.5cqw, 8px) solid var(--bezel);
+  border-radius: clamp(16px, 1.6cqw, 24px);
+  background: #1b1b1b;
+  box-shadow: 0 20px 40px -14px color-mix(in srgb, #000 45%, transparent);
+  opacity: 0;
+  transform: translateY(14%) rotate(0deg) scale(0.92);
+  transition:
+    opacity 220ms var(--out),
+    transform 300ms var(--out),
+    border-color var(--tint) ease;
+}
+
+.fanSlot[data-on] .fanPhone {
+  opacity: 1;
+  transform: translateX(calc(var(--f) * 50%)) translateY(calc(var(--f) * var(--f) * 3%)) rotate(calc(var(--f) * 7deg));
+  transition:
+    opacity 340ms var(--out) calc(120ms + (var(--f) + 1.5) * 50ms),
+    transform var(--morph) var(--spring) calc(120ms + (var(--f) + 1.5) * 50ms),
+    border-color var(--tint) ease;
+}
+
+/* Stickers: three circles that travel between steps; the words inside roll over. */
+.sticker {
+  width: var(--sticker);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  font-family: var(--font-display);
+  font-size: calc(var(--sticker) * 0.128);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  text-align: center;
+  transition:
+    transform var(--morph) var(--spring) var(--d),
+    background-color var(--tint) ease,
+    color var(--tint) ease,
+    box-shadow var(--tint) ease;
+}
+
+.sticker[data-sticker="a"] {
+  --d: 60ms;
+  background: var(--s1-bg);
+  color: var(--s1-fg);
+  box-shadow: inset 0 0 0 2px var(--s1-ring);
+  transform: translate(calc(var(--rx) + var(--rw) * var(--ax) - 50%), calc(var(--ry) + var(--rh) * var(--ay) - 50%))
+    rotate(var(--ar));
+}
+
+.sticker[data-sticker="b"] {
+  --d: 100ms;
+  background: var(--s2-bg);
+  color: var(--s2-fg);
+  box-shadow: inset 0 0 0 2px var(--s2-ring);
+  transform: translate(calc(var(--rx) + var(--rw) * var(--bx) - 50%), calc(var(--ry) + var(--rh) * var(--by) - 50%))
+    rotate(var(--br));
+}
+
+.sticker[data-sticker="c"] {
+  --d: 140ms;
+  background: var(--s3-bg);
+  color: var(--s3-fg);
+  box-shadow: inset 0 0 0 2px var(--s3-ring);
+  transform: translate(calc(var(--rx) + var(--rw) * var(--cx) - 50%), calc(var(--ry) + var(--rh) * var(--cy) - 50%))
+    rotate(var(--cr));
+}
+
+.stickerText {
+  grid-area: 1 / 1;
+  max-width: 76%;
+  opacity: 0;
+  transition:
+    opacity 180ms var(--out),
+    transform 260ms var(--out);
+}
+
+.stickerText[data-state="before"] {
+  transform: translateY(-70%);
+}
+
+.stickerText[data-state="after"] {
+  transform: translateY(70%);
+}
+
+.stickerText[data-state="on"] {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 300ms var(--out) calc(var(--d) + 120ms),
+    transform var(--morph) var(--spring) calc(var(--d) + 80ms);
+}
+
+.cursor {
+  --d: 180ms;
+  width: clamp(30px, 3cqw, 46px);
+  transform: translate(calc(var(--rx) + var(--rw) * var(--kx) - 50%), calc(var(--ry) + var(--rh) * var(--ky) - 50%))
+    rotate(var(--kr));
+  filter: drop-shadow(0 3px 4px color-mix(in srgb, #000 22%, transparent));
+}
+
+.cursor svg,
+.star svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.star {
+  --d: 200ms;
+  width: clamp(18px, 1.8cqw, 28px);
+  transform: translate(calc(var(--rx) + var(--rw) * var(--tx) - 50%), calc(var(--ry) + var(--rh) * var(--ty) - 50%))
+    rotate(var(--tr));
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────────── */
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 clamp(10px, 2.4vw, 36px) clamp(10px, 2.4vw, 36px);
+  font-size: 15px;
+}
+
+.footBox,
+.footLink {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  min-height: 64px;
+  padding: 12px 26px;
+  border-radius: clamp(18px, 1.9vw, 28px);
+  background: #15120f;
+  color: #f1eadb;
+  --focus: #15120f;
+}
+
+.footBox {
+  flex: 1 1 420px;
+}
+
+.footLink {
+  justify-content: center;
+  border-radius: 999px;
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 5px;
+  transition: text-decoration-color 160ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .footLink:hover {
+    text-decoration-color: currentColor;
+  }
+}
+
+/* ── Mid widths: the nav keeps its title, drops the note and links tighten ─ */
+
+@media (max-width: 1100px) {
+  .titleNote {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .navLinks {
+    display: none;
+  }
+  .dots {
+    margin-left: auto;
+  }
+}
+
+/* ── Phone: boxes stacked, same morph ───────────────────────────────────── */
+
+@media (max-width: 767px) {
+  .bento {
+    --pad: 8px;
+    --gap: 6px;
+    --radius: 20px;
+    --top: 58px;
+    --logo-w: 86px;
+    --pill-w: 58px;
+
+    /* Headline box on top, picture box under it. */
+    --ly: calc(var(--pad) + var(--top) + var(--gap));
+    --lh: calc((100cqh - var(--ly) - var(--pad) - var(--gap)) * 0.54);
+    --rx: var(--pad);
+    --ry: calc(var(--ly) + var(--lh) + var(--gap));
+    --rw: calc(100cqw - 2 * var(--pad));
+    --rh: calc(100cqh - var(--ry) - var(--pad));
+
+    --dev-w: min(calc(var(--rh) * 0.66), 64cqw);
+    --sticker: clamp(70px, 20cqw, 92px);
+  }
+
+  .plateLeft,
+  .plateRight {
+    left: var(--pad);
+    right: auto;
+    width: var(--rw);
+    transform: none;
+  }
+
+  .plateLeft {
+    top: var(--ly);
+    height: var(--lh);
+  }
+
+  .layer {
+    width: var(--rw);
+    padding: 18px 20px 16px;
+  }
+
+  .logo {
+    padding-left: 16px;
+    font-size: 16px;
+  }
+
+  .nav {
+    padding-inline: 14px 4px;
+    gap: 6px;
+  }
+
+  .title {
+    font-size: 15px;
+    white-space: normal;
+  }
+
+  .dots {
+    display: none;
+  }
+
+  .next {
+    gap: 0;
+  }
+
+  .nextLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .nextIcon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .headline {
+    font-size: clamp(30px, min(9.4cqw, 5.4cqh), 44px);
+    margin-top: clamp(14px, 3cqh, 32px);
+  }
+
+  .blurb {
+    margin-top: 10px;
+    font-size: 15px;
+    line-height: 1.45;
+  }
+
+  .cta {
+    min-height: 50px;
+    padding: 0 20px;
+    font-size: 16px;
+  }
+
+  .frame {
+    border-radius: 18px;
+  }
+
+  .bar {
+    height: 22px;
+  }
+
+  .url {
+    display: none;
+  }
+
+  .screen {
+    aspect-ratio: 390 / 488;
+    border-radius: 12px;
+  }
+
+  .fan {
+    width: min(calc(var(--rh) * 0.5), calc(var(--rw) * 0.36));
+  }
+
+  .fanSlot[data-on] .fanPhone {
+    transform: translateX(calc(var(--f) * 40%)) translateY(calc(var(--f) * var(--f) * 3%)) rotate(calc(var(--f) * 6deg));
+  }
+
+  .footBox {
+    flex-basis: 100%;
+  }
+
+  .footLink {
+    flex: 1;
+  }
+}
+
+/* Short phones: the blurb gives way to the headline. */
+@media (max-width: 767px) and (max-height: 700px) {
+  .blurb {
+    display: none;
+  }
+}
+
+/* ── Reduced motion: every swap is instant ──────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .page *,
+  .page *::before,
+  .page *::after {
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+  }
+
+  .layer > *,
+  .shot,
+  .stickerText {
+    filter: none;
+  }
+}

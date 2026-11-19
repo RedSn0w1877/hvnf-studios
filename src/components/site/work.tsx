@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import { SHOTS, type PosterFile, type Shot } from "@/assets/work";
-import { ArrowOut, Section, TextLink } from "./kit";
+import { ArrowOut, Button, Section, TextLink } from "./kit";
 
 /**
  * "A few sites we've made": the Ember Drawing mosaic. An ink title block, then
@@ -12,6 +12,11 @@ import { ArrowOut, Section, TextLink } from "./kit";
  * scrolls into view (CSS .rv-rise, driven by data-reveal, staggered 60ms), and
  * on a hover-capable screen the poster shifts 6px up inside its frame. Reduced
  * motion: neither plays. With no JavaScript nothing is ever hidden.
+ *
+ * On a phone the Penner feature shows its own phone view (heading, prices and
+ * the Call and Book buttons at a readable size) instead of a shrunken desktop.
+ * Each card has an id (#work-penner …) so the hero can point at it. Under the
+ * last tile, one more way into the intake drawer.
  */
 
 type Build = {
@@ -83,17 +88,23 @@ const srcSet = (files: readonly PosterFile[]) => files.map(({ file, width }) => 
 /** Rendered width of a tile's poster at each breakpoint, so the browser picks the smallest file that is sharp. */
 const SIZES_TILE = "(min-width: 1024px) 34vw, 100vw";
 const SIZES_FEATURE = "(min-width: 1024px) 50vw, 100vw";
+/** The phone view fills the card on a phone (under 640). */
+const SIZES_PHONE = "100vw";
+const PHONE_MQ = "(max-width: 639px)";
 
 /**
  * The site's own first screen. Lazy and decoded off the main thread: none are
  * near the first screen. The image is 6px taller than its frame and pinned to
  * the top, so the hover shift (up 6px) never shows a gap at the bottom.
  */
-function Still({ shot, sizes }: { shot: Shot; sizes: string }) {
+function Still({ shot, sizes, phone = false }: { shot: Shot; sizes: string; phone?: boolean }) {
   const { desktop } = shot;
   const fallback = desktop.webp[desktop.webp.length - 1];
   return (
     <picture>
+      {/* Phones get the site's own phone view, cropped in CSS (.max-sm:object-[…]) to its heading, prices and buttons. */}
+      {phone ? <source media={PHONE_MQ} type="image/avif" srcSet={srcSet(shot.phone.avif)} sizes={SIZES_PHONE} /> : null}
+      {phone ? <source media={PHONE_MQ} type="image/webp" srcSet={srcSet(shot.phone.webp)} sizes={SIZES_PHONE} /> : null}
       <source type="image/avif" srcSet={srcSet(desktop.avif)} sizes={sizes} />
       <img
         src={fallback.file.src}
@@ -104,13 +115,13 @@ function Still({ shot, sizes }: { shot: Shot; sizes: string }) {
         alt=""
         loading="lazy"
         decoding="async"
-        className="absolute inset-0 h-[calc(100%+6px)] w-full max-w-none object-cover object-left-top transition-transform duration-300 ease-settle motion-safe:group-focus-within:-translate-y-1.5 motion-safe:group-hover:-translate-y-1.5"
+        className={`absolute inset-0 h-[calc(100%+6px)] w-full max-w-none object-cover object-left-top transition-transform duration-300 ease-settle motion-safe:group-focus-within:-translate-y-1.5 motion-safe:group-hover:-translate-y-1.5 ${phone ? "max-sm:object-[50%_81%]" : ""}`}
       />
     </picture>
   );
 }
 
-export function Work() {
+export function Work({ onStart }: { onStart: () => void }) {
   return (
     <Section id="work" surface="ink">
       <div data-reveal className="grid grid-cols-12">
@@ -127,6 +138,7 @@ export function Work() {
           return (
             <article
               key={build.id}
+              id={`work-${build.id}`}
               style={
                 {
                   backgroundColor: build.bg,
@@ -145,9 +157,9 @@ export function Work() {
                 rel="noreferrer"
                 tabIndex={-1}
                 aria-hidden="true"
-                className={`relative block overflow-hidden ${feature ? "aspect-[16/10] lg:aspect-auto lg:h-[400px] lg:flex-1" : "aspect-[16/9.5]"}`}
+                className={`relative block overflow-hidden ${feature ? "aspect-[390/500] sm:aspect-[16/10] lg:aspect-auto lg:h-[400px] lg:flex-1" : "aspect-[16/9.5]"}`}
               >
-                <Still shot={build.shot} sizes={feature ? SIZES_FEATURE : SIZES_TILE} />
+                <Still shot={build.shot} sizes={feature ? SIZES_FEATURE : SIZES_TILE} phone={feature} />
               </a>
               <div
                 className={`flex flex-1 flex-col px-g pb-5 pt-[18px] max-sm:pb-7 ${feature ? "lg:w-[320px] lg:flex-none lg:px-8 lg:pb-8 lg:pt-12" : ""}`}
@@ -163,6 +175,13 @@ export function Work() {
             </article>
           );
         })}
+      </div>
+
+      {/* After the last example, before How it works: the same drawer as the hero's button. */}
+      <div className="flex px-g pb-14 pt-10 max-sm:pb-12 max-sm:pt-8">
+        <Button tone="ember" onClick={onStart} className="max-sm:w-full">
+          Ask for my website preview
+        </Button>
       </div>
     </Section>
   );

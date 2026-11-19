@@ -7,12 +7,12 @@ import s from "./method.module.css";
  * How it works (full-bleed cobalt): the four steps as four states of one
  * drawing (draft, marked up, built, yours), with a heavy payment bar across
  * the top that says when money moves: nothing over steps 1 and 2, half over 3,
- * the other half over 4. On a phone each bar becomes a band directly above the
- * step or steps it covers.
+ * the other half over 4. On a phone the bars go, the steps become a compact
+ * list, and each step's payment note shows as a small tag beside its label.
  *
  * Server-rendered, no hooks. The bars are decoration for the eye (aria-hidden);
- * the same words sit inside the steps they cover for a screen reader, so the
- * money is read in the right place. Entrances are CSS driven by data-reveal
+ * the same words sit inside the steps they cover (screen-reader only above
+ * 640, a visible tag on a phone), so the money is read in the right place. Entrances are CSS driven by data-reveal
  * (see method.module.css and lib/in-view.ts).
  */
 
@@ -24,6 +24,8 @@ type Step = {
   body: string;
   /** Said aloud ahead of this step. Only the first step each bar covers has one. */
   pays?: string;
+  /** Shown, not said, on a phone: step 2 sits under the same "You pay nothing" bar as step 1. */
+  paysSeen?: string;
   /** When this step's drawing arrives, once the block scrolls in. */
   delay: string;
 };
@@ -46,6 +48,7 @@ const STEPS: readonly Step[] = [
     title: "You tell us what to change",
     body:
       "We’ll get a few things wrong, like an old photo or a service you don’t offer anymore. Send us a list and we’ll work through it with you until it sounds like your business.",
+    paysSeen: "You pay nothing",
     delay: "300ms",
   },
   {
@@ -96,13 +99,24 @@ export function Method() {
           {STEPS.map((step, i) => (
             <li key={step.key} className={`${s.step} ${s[step.key]}`} style={{ "--d": step.delay } as CSSProperties}>
               <div className={s.top}>
-                <span aria-hidden className="t-num">
+                <span aria-hidden className={`t-num ${s.num}`}>
                   {i + 1}
                 </span>
                 <span className={`t-label font-bold ${step.state === "changes" ? s.chip : s.label}`}>{step.label}</span>
+                {/* Screen-reader only from 640 up (the bars carry it there); a tag beside the label on a phone. */}
+                {step.pays ? (
+                  <span className={`t-label ${s.note}`} data-tone={i === 0 ? "free" : "paid"}>
+                    {step.pays}
+                    <span className="sr-only">.</span>
+                  </span>
+                ) : null}
+                {step.paysSeen ? (
+                  <span className={`t-label ${s.note}`} data-tone="free" aria-hidden>
+                    {step.paysSeen}
+                  </span>
+                ) : null}
               </div>
               <StepCube state={step.state} className={`${s.art} rv-up`} />
-              {step.pays ? <p className="sr-only">{step.pays}.</p> : null}
               <h3 className="t-h3">{step.title}</h3>
               <p className="t-body">{step.body}</p>
             </li>
