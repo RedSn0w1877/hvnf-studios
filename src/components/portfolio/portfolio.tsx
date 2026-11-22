@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { Bento } from "./bento";
-import { STEPS } from "./demos";
+import { STEPS as ALL_STEPS } from "./demos";
 import s from "./portfolio.module.css";
 
 /**
@@ -39,7 +39,14 @@ function ArrowV({ up }: { up: boolean }) {
   );
 }
 
-export function Portfolio() {
+/**
+ * `embedded` puts the stage inside the homepage's Examples section: no page
+ * chrome of its own (no <main>, no footer, no snapping), the demo names as h3,
+ * and `anchorId` marks the top of the first step so other links can point at it.
+ */
+export function Portfolio({ embedded = false, anchorId }: { embedded?: boolean; anchorId?: string }) {
+  // On the homepage the closing bento is left out: the button under the stage does its job.
+  const STEPS = embedded ? ALL_STEPS.filter((step) => step.shot) : ALL_STEPS;
   const [active, setActive] = useState(0);
   // The furthest step whose pictures may load: the active one plus the next.
   const [reach, setReach] = useState(1);
@@ -96,10 +103,11 @@ export function Portfolio() {
     </div>
   );
 
+  const Root = embedded ? "div" : "main";
   return (
-    <main className={s.page}>
+    <Root className={embedded ? s.embed : s.page}>
       {/* With JavaScript: one sticky stage that morphs from step to step. */}
-      <div className={s.track} style={{ "--steps": STEPS.length } as CSSProperties}>
+      <div className={s.track} id={anchorId} style={{ "--steps": STEPS.length } as CSSProperties}>
         {STEPS.map((step, i) => (
           <div
             key={step.id}
@@ -118,7 +126,8 @@ export function Portfolio() {
             active={active}
             loaded={(i) => i <= reach}
             priority
-            headingLevel="h1"
+            headingLevel={embedded ? "p" : "h1"}
+            embedded={embedded}
             next={next}
             dots={dots}
             className={s.stage}
@@ -137,7 +146,8 @@ export function Portfolio() {
               steps={[step]}
               active={0}
               loaded={() => true}
-              headingLevel={i === 0 ? "h1" : "p"}
+              headingLevel={i === 0 && !embedded ? "h1" : "p"}
+              embedded={embedded}
               next={
                 <a className={s.next} href={following ? `#site-${following.id}` : `#site-${STEPS[0].id}`}>
                   <span className={s.nextLabel}>{following ? "Next site" : "Start again"}</span>
@@ -150,6 +160,7 @@ export function Portfolio() {
         })}
       </div>
 
+      {embedded ? null : (
       <footer className={s.footer}>
         <p className={s.footBox}>
           © HVNF Studios — do not redistribute. The four brands are made up; the sites are real and you can use them.
@@ -164,6 +175,7 @@ export function Portfolio() {
           Homepage
         </Link>
       </footer>
-    </main>
+      )}
+    </Root>
   );
 }

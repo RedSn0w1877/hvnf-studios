@@ -18,7 +18,8 @@
  * part turns round from where it is.
  */
 
-.page {
+.page,
+.embed {
   --spring: linear(0, 0.0228, 0.0827, 0.168, 0.2689, 0.3772, 0.4864, 0.5915, 0.6889, 0.7763, 0.8522, 0.9162, 0.9683, 1.0092, 1.0398, 1.0612, 1.0747, 1.0818, 1.0835, 1.0812, 1.0759, 1.0686, 1.0601, 1.051, 1.0419, 1.0332, 1.0251, 1.0179, 1.0117, 1.0065, 1.0022, 0.9989, 0.9964, 0.9947, 0.9937, 0.9931, 0.993, 0.9933, 0.9937, 0.9943, 0.9951, 0.9958, 0.9966, 0.9973, 0.998, 1);
   --out: cubic-bezier(0.23, 1, 0.32, 1);
   --morph: 900ms;
@@ -30,7 +31,8 @@
 }
 
 @supports not (transition-timing-function: linear(0, 1)) {
-  .page {
+  .page,
+  .embed {
     --spring: cubic-bezier(0.34, 1.45, 0.64, 1);
     --morph: 700ms;
   }
@@ -42,7 +44,7 @@
 }
 
 /* Snap near a step, never forced. The homepage's 64px scroll padding is for its bar, which this page has not got. */
-:global(html):has(.track) {
+:global(html):has(.page .track) {
   scroll-snap-type: y proximity;
   scroll-padding-top: 0;
 }
@@ -986,7 +988,10 @@
 @media (prefers-reduced-motion: reduce) {
   .page *,
   .page *::before,
-  .page *::after {
+  .page *::after,
+  .embed *,
+  .embed *::before,
+  .embed *::after {
     transition-duration: 0s !important;
     transition-delay: 0s !important;
   }
@@ -996,4 +1001,10 @@
   .stickerText {
     filter: none;
   }
+}
+
+/* On the homepage the stage sits under the fixed top bar, so it starts below it. */
+.embed .sticky {
+  padding-top: var(--bar-h, 64px);
+  box-sizing: border-box;
 }

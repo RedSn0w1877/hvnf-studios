@@ -37,6 +37,8 @@ type Props = {
   dots?: ReactNode;
   className?: string;
   id?: string;
+  /** On the homepage the demo names are h3 (under its own h2); on /portfolio they are h2. */
+  embedded?: boolean;
 };
 
 const srcSet = (files: readonly PosterFile[]) => files.map(({ file, width }) => `${file.src} ${width}w`).join(", ");
@@ -169,9 +171,10 @@ function Star() {
   );
 }
 
-export function Bento({ steps, active, loaded, priority = false, headingLevel, next, dots, className, id }: Props) {
+export function Bento({ steps, active, loaded, priority = false, headingLevel, next, dots, className, id, embedded = false }: Props) {
   const step = steps[active];
   const Heading = headingLevel;
+  const Name = embedded ? "h3" : "h2";
   const closing = step.shot === null;
 
   return (
@@ -221,7 +224,7 @@ export function Bento({ steps, active, loaded, priority = false, headingLevel, n
             style={{ "--ls": item.layout.split } as CSSProperties}
           >
             <header className={s.layerHead}>
-              <h2 className={s.name}>{item.title}</h2>
+              <Name className={s.name}>{item.title}</Name>
               <span className={s.sector}>{item.sector}</span>
             </header>
             <p className={s.headline}>{item.headline}</p>

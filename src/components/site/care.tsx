@@ -35,7 +35,7 @@ const PILLARS: readonly { title: string; body: string }[] = [
   {
     title: "We can look after it",
     body:
-      "Our care plan is optional and paid monthly. We host the site, keep it secure, watch that it stays up and send you a short email each month on how it’s doing. New hours or a new photo? Send it over and we’ll put it up. You never have to open a dashboard.",
+      "Every site comes with our care plan, paid monthly. We host the site, keep it secure, watch that it stays up and send you a short email each month on how it’s doing. New hours or a new photo? Send it over and we’ll put it up. You never have to open a dashboard.",
   },
 ];
 
