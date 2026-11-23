@@ -1,0 +1,214 @@
+/*
+ * The request card's own styles: the parts Tailwind utilities say badly (a
+ * :has() state, pseudo-element fills, press feedback, the scroll area).
+ * Everything that moves is transform or opacity; the one exception is the card
+ * body's height, which the card animates on purpose so a taller or shorter step
+ * never jumps. Colours are the page's tokens (ink, ember, bone, white).
+ */
+
+/* ── The shared easing: strong ease-out, from emil-design-eng ───────────── */
+.card {
+  --out: cubic-bezier(0.23, 1, 0.32, 1);
+  --press: cubic-bezier(0.23, 1, 0.32, 1);
+  /* The card is dragged by pointer: the browser must not scroll or zoom from the header. */
+  -webkit-user-select: none;
+  user-select: none;
+}
+.card input,
+.card textarea,
+.card select,
+.card [data-selectable] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* The header and grab handle: where a drag starts. touch-action none so a finger drag is ours. */
+.grip {
+  touch-action: none;
+  cursor: grab;
+}
+.gripping,
+.gripping * {
+  cursor: grabbing !important;
+}
+
+/* Body scroll area: its own scrolling, never chained to the page behind. */
+.scroll {
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-ink) transparent;
+}
+/* A body that fits has nothing to scroll, so a finger drag on it drags the card. */
+.scroll[data-fits="true"] {
+  touch-action: none;
+}
+.scroll[data-fits="false"] {
+  touch-action: pan-y;
+}
+
+/* ── Press feedback on anything pressable (160ms, ease-out, 97%) ────────── */
+.press {
+  transition: transform 160ms var(--press), opacity 160ms var(--press);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.press:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+/* ── Progress: small segments ───────────────────────────────────────────── */
+.seg {
+  position: relative;
+  height: 6px;
+  flex: 1 1 0;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--color-ink) 22%, transparent);
+}
+.segFill {
+  position: absolute;
+  inset: 0;
+  background: var(--color-ink);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 260ms var(--out);
+}
+.seg[data-done="true"] .segFill {
+  transform: scaleX(1);
+}
+
+/* ── Choice rows (radio and checkbox) ───────────────────────────────────── */
+.choice {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  min-height: 56px;
+  cursor: pointer;
+  border: 2px solid var(--color-ink);
+  padding: 14px 16px;
+  color: var(--color-ink);
+  background: transparent;
+  transition: transform 160ms var(--press), color 0s linear 90ms;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+/* The ink block that lays in from the left when a row is chosen. */
+.choice::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  z-index: -1;
+  background: var(--color-ink);
+  transform: scaleX(0);
+  transform-origin: left;
+  opacity: 0;
+  transition: opacity 200ms linear, transform 0s linear 200ms;
+}
+.choice:has(input:checked) {
+  color: var(--color-bone);
+}
+.choice:has(input:checked)::before {
+  transform: scaleX(1);
+  opacity: 1;
+  transition: transform 260ms var(--out), opacity 0s;
+}
+.choice:has(input:focus-visible) {
+  outline: 3px solid var(--color-ink);
+  outline-offset: 3px;
+}
+.choice:active {
+  transform: scale(0.98);
+}
+.choiceBox {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  border: 2px solid currentColor;
+}
+.choiceBox::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  background: var(--color-ember);
+  opacity: 0;
+  transition: opacity 120ms linear;
+}
+.choice:has(input:checked) .choiceBox::after {
+  opacity: 1;
+  transition: opacity 160ms linear 100ms;
+}
+.choiceNote {
+  color: color-mix(in srgb, var(--color-ink) 75%, transparent);
+}
+.choice:has(input:checked) .choiceNote {
+  color: var(--color-bone-dim);
+}
+
+/* ── A select that draws its own chevron (the native one is off) ───────── */
+.select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 44px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%2315120f' stroke-width='2.5'%3E%3Cpath d='M3 6l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+}
+
+/* ── The honeypot: out of sight and out of the tab order, but in the DOM for bots ── */
+.trap {
+  position: absolute;
+  left: -10000px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+/* ── Plain text link in the card ────────────────────────────────────────── */
+.link {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .link:hover {
+    text-decoration-thickness: 3px;
+  }
+}
+
+/* ── Reduced motion: nothing slides or springs; state changes land at once ── */
+@media (prefers-reduced-motion: reduce) {
+  .segFill,
+  .choice,
+  .choice::before,
+  .choiceBox::after,
+  .press {
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+  }
+}
+
+/* ── The Terms and Privacy line under the buttons: opens with the review step ── */
+.terms {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 260ms var(--out), opacity 200ms var(--out);
+}
+.terms > * {
+  min-height: 0;
+  overflow: hidden;
+}
+.terms[data-open="true"] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .terms {
+    transition-duration: 0s;
+  }
+}

@@ -11,8 +11,8 @@ export default function PrivacyPage() {
   return (
     <LegalPage
       title="Privacy"
-      updated="October 2026"
-      summary="Short version: this site doesn’t track you or set cookies, and nothing you type into the form reaches us until you send the email yourself."
+      updated="November 2026"
+      summary="Short version: this site doesn’t track you or set cookies. What you type into the request form is emailed to us when you send it, and it isn’t stored on this site."
       clauses={[
         {
           heading: "Analytics, advertising and cookies",
@@ -27,21 +27,29 @@ export default function PrivacyPage() {
         {
           heading: "The project inquiry form",
           body: (
-            <p>
-              Information entered into the project inquiry form is held solely within your browser. Selecting “Open
-              email draft” populates a message in your own email client; no data is transmitted to us unless and until
-              you elect to send that message. Closing the tab discards the information in its entirety.
-            </p>
+            <>
+              <p>
+                What you enter into the request form stays in your browser, in memory only, until you choose to send it. It is not saved
+                to local storage or placed in the address bar, and closing the tab discards it. When you select “Send request”, the
+                answers are sent to our server, which passes them straight on as an email to {STUDIO_EMAIL}, and sends you a short
+                confirmation at the address you gave. The site does not store the request itself.
+              </p>
+              <p className="mt-4">
+                Those emails are delivered by Resend, our email service provider, which handles the message in order to send it. If the
+                form can’t reach our server, or you use the copy of this site on GitHub Pages, the form instead offers to open the same
+                request as an email in your own email app, and nothing is transmitted to us unless you send that email yourself.
+              </p>
+            </>
           ),
         },
         {
           heading: "Correspondence",
           body: (
             <p>
-              Where you contact us by email, we retain the information you provide (your name, business name, email
-              address and the details of your inquiry) for the purposes of responding and preparing a quotation. We do
-              not sell, license or otherwise disclose it to third parties, and we do not add you to any mailing list.
-              You may request its deletion at any time, and we will comply.
+              Where you contact us by email, or send a request through the form, we retain the information you provide (your name,
+              business name, email address and the details of your inquiry) in our inbox for the purposes of responding and preparing a
+              quotation. We do not sell, license or otherwise disclose it to third parties, other than the email service that delivers
+              the message, and we do not add you to any mailing list. You may request its deletion at any time, and we will comply.
             </p>
           ),
         },
@@ -49,7 +57,7 @@ export default function PrivacyPage() {
           heading: "Hosting and third-party embeds",
           body: (
             <p>
-              This site is served as static files. The host records standard technical request logs, including IP
+              This site is served from a hosting platform (Vercel, with a copy on GitHub Pages). The host records standard technical request logs, including IP
               address and request time, for the purposes of delivering and securing the pages. The sample site previews
               on the homepage are loaded directly from GitHub Pages; requests for those pages are visible to GitHub in
               the same manner as if you had visited them directly.
